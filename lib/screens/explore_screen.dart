@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../data/catalog.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'search_screen.dart';
 
 class _Universe {
   final String title;
@@ -33,53 +35,70 @@ class ExploreScreen extends StatelessWidget {
 
   const ExploreScreen({super.key, required this.onOpenTab});
 
+  void _openSearch(BuildContext context) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen()));
+
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+    return Column(
       children: [
-        Text('Explorer', style: display(30)),
-        const SizedBox(height: 4),
-        Text('6 univers pour apprendre, comprendre et créer', style: body(14, color: BarroColors.muted)),
-        const SizedBox(height: 18),
-        TextField(
-          style: body(15),
-          decoration: InputDecoration(
-            hintText: 'Que veux-tu apprendre ?',
-            hintStyle: body(15, color: BarroColors.muted),
-            prefixIcon: const Icon(Icons.search, color: BarroColors.muted),
-            filled: true,
-            fillColor: BarroColors.surface,
-            border: OutlineInputBorder(
+        TabHeader(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Explorer', style: display(26)),
+              Text('6 univers · $metierCount métiers', style: body(12, color: BarroColors.muted)),
+            ],
+          ),
+          actions: [SquareIconButton(icon: Icons.search, tooltip: 'Rechercher', onPressed: () => _openSearch(context))],
+          bottom: Material(
+            color: BarroColors.surface,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: BarroColors.border),
+              side: const BorderSide(color: BarroColors.border),
             ),
-            enabledBorder: OutlineInputBorder(
+            child: InkWell(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: BarroColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: BarroColors.green, width: 2),
+              onTap: () => _openSearch(context),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: BarroColors.muted),
+                    const SizedBox(width: 10),
+                    Text('Que veux-tu apprendre ?', style: body(15, color: BarroColors.muted)),
+                  ],
+                ),
+              ),
             ),
           ),
-          onSubmitted: (_) => showSoon(context, 'La recherche'),
         ),
-        const SizedBox(height: 18),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 0.86,
-          children: [
-            for (final u in _universes)
-              _UniverseTile(
-                universe: u,
-                onTap: () => u.available ? onOpenTab(2) : showSoon(context, u.title),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+            children: [
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.86,
+                children: [
+                  for (var i = 0; i < _universes.length; i++)
+                    FadeSlideIn(
+                      index: i,
+                      child: _UniverseTile(
+                        universe: _universes[i],
+                        onTap: () => _universes[i].available
+                            ? openMetiers(context)
+                            : showSoon(context, _universes[i].title),
+                      ),
+                    ),
+                ],
               ),
-          ],
+            ],
+          ),
         ),
       ],
     );

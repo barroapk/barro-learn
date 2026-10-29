@@ -4,39 +4,73 @@ import '../data/course.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/illustrations.dart';
 import 'lesson_screen.dart';
+import 'search_screen.dart';
 
 /// Onglet « Apprendre » : le parcours, ses modules et ses leçons.
 class CourseScreen extends StatelessWidget {
-  const CourseScreen({super.key});
+  final VoidCallback? onBack;
+
+  const CourseScreen({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
     final state = AppState.instance;
-    return ListenableBuilder(
-      listenable: state,
-      builder: (context, _) {
-        final course = state.course;
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          children: [
-            Text('${course.universe} · Mon parcours', style: body(13, color: BarroColors.muted, weight: FontWeight.w600)),
-            const SizedBox(height: 12),
-            _Hero(course: course, progress: state.courseProgress),
-            for (final module in course.modules) ...[
-              const SizedBox(height: 24),
-              Text('Module ${module.number} · ${module.title}', style: display(18, weight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text(module.goal, style: body(13, color: BarroColors.muted)),
-              const SizedBox(height: 12),
-              for (final lesson in module.lessons) _LessonTile(lesson: lesson),
-              _ExerciseTile(title: 'Exercice pratique : ${module.exercise}', module: module),
+    return Column(
+      children: [
+        TabHeader(
+          onBack: onBack,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Apprendre', style: display(26)),
+              Text('Mon parcours · ${state.course.universe}', style: body(12, color: BarroColors.muted)),
             ],
-            const SizedBox(height: 16),
-            _ExamTile(unlocked: state.completedCount == course.lessonCount),
+          ),
+          actions: [
+            SquareIconButton(
+              icon: Icons.search,
+              tooltip: 'Rechercher une leçon',
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
+            ),
           ],
-        );
-      },
+        ),
+        Expanded(
+          child: ListenableBuilder(
+            listenable: state,
+            builder: (context, _) {
+              final course = state.course;
+              var i = 0;
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                children: [
+                  FadeSlideIn(child: _Hero(course: course, progress: state.courseProgress)),
+                  for (final module in course.modules) ...[
+                    const SizedBox(height: 24),
+                    FadeSlideIn(
+                      index: ++i,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Module ${module.number} · ${module.title}', style: display(18, weight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          Text(module.goal, style: body(13, color: BarroColors.muted)),
+                          const SizedBox(height: 12),
+                          for (final lesson in module.lessons) _LessonTile(lesson: lesson),
+                          _ExerciseTile(title: 'Exercice pratique : ${module.exercise}', module: module),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  _ExamTile(unlocked: state.completedCount == course.lessonCount),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -55,6 +89,8 @@ class _Hero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const ChickScene(prop: SceneProp.sun, sky: Color(0xFF04402F), height: 130),
+          const SizedBox(height: 14),
           Wrap(
             spacing: 8,
             runSpacing: 8,

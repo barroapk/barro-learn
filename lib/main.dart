@@ -4,9 +4,13 @@ import 'screens/course_screen.dart';
 import 'screens/explore_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/progress_screen.dart';
+import 'state.dart';
 import 'theme.dart';
+import 'widgets/backgrounds.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppState.instance.load();
   runApp(const BarroApp());
 }
 
@@ -15,16 +19,27 @@ class BarroApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'BARRO',
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
-      home: const HomeShell(),
+    final state = AppState.instance;
+    return ListenableBuilder(
+      listenable: state,
+      builder: (context, _) => MaterialApp(
+        title: 'BARRO',
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(),
+        builder: (context, child) {
+          final mq = MediaQuery.of(context);
+          return MediaQuery(
+            data: mq.copyWith(textScaler: TextScaler.linear(state.textScale)),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
+        home: const HomeShell(),
+      ),
     );
   }
 }
 
-/// La coque de l'app : les 4 onglets du bas.
+/// La coque de l'app : le fond d'écran et les 4 onglets du bas.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -40,16 +55,19 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: IndexedStack(
-          index: _tab,
-          children: [
-            HomeScreen(onOpenTab: _openTab),
-            ExploreScreen(onOpenTab: _openTab),
-            const CourseScreen(),
-            const ProgressScreen(),
-          ],
+      backgroundColor: BarroColors.bg,
+      body: BarroBackground(
+        child: SafeArea(
+          bottom: false,
+          child: IndexedStack(
+            index: _tab,
+            children: [
+              HomeScreen(onOpenTab: _openTab),
+              ExploreScreen(onOpenTab: _openTab),
+              const CourseScreen(),
+              const ProgressScreen(),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: NavigationBar(
