@@ -1,0 +1,52 @@
+name: Compiler l'APK BARRO
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Installer Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Générer la partie Android
+        run: |
+          flutter create --platforms=android --org com.kounadia --project-name barro_learn .
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          sed -i 's/android:label="barro_learn"/android:label="BARRO"/' "$MANIFEST"
+          if ! grep -q 'android.permission.INTERNET' "$MANIFEST"; then
+            sed -i 's#<manifest xmlns:android="http://schemas.android.com/apk/res/android">#&\n    <uses-permission android:name="android.permission.INTERNET"/>#' "$MANIFEST"
+          fi
+
+      - name: Télécharger les paquets
+        run: flutter pub get
+
+      - name: Vérifier le code
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Lancer les tests
+        run: flutter test
+
+      - name: Compiler l'APK
+        run: flutter build apk --release
+
+      - name: Mettre l'APK à disposition
+        uses: actions/upload-artifact@v4
+        with:
+          name: barro-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
