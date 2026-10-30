@@ -5,19 +5,17 @@ import 'data/course.dart';
 import 'data/poultry_course.dart';
 
 /// Les fonds d'écran proposés dans les paramètres.
-enum BackgroundStyle { savane, faso, etoiles, uni }
+enum BackgroundStyle { blanc, feuillage, points }
 
 extension BackgroundStyleLabel on BackgroundStyle {
   String get label {
     switch (this) {
-      case BackgroundStyle.savane:
-        return 'Savane';
-      case BackgroundStyle.faso:
-        return 'Faso Dan Fani';
-      case BackgroundStyle.etoiles:
-        return 'Nuit étoilée';
-      case BackgroundStyle.uni:
-        return 'Uni';
+      case BackgroundStyle.blanc:
+        return 'Blanc';
+      case BackgroundStyle.feuillage:
+        return 'Feuillage';
+      case BackgroundStyle.points:
+        return 'Points';
     }
   }
 }
@@ -37,7 +35,7 @@ class AppState extends ChangeNotifier {
   String _lastDay = '';
 
   String learnerName = '';
-  BackgroundStyle background = BackgroundStyle.savane;
+  BackgroundStyle background = BackgroundStyle.blanc;
   double textScale = 1.0;
   bool dataSaver = false;
   bool dailyReminder = false;
@@ -56,7 +54,7 @@ class AppState extends ChangeNotifier {
       _lastDay = p.getString('lastDay') ?? '';
       learnerName = p.getString('name') ?? '';
       final bg = p.getString('background');
-      background = BackgroundStyle.values.firstWhere((b) => b.name == bg, orElse: () => BackgroundStyle.savane);
+      background = BackgroundStyle.values.firstWhere((b) => b.name == bg, orElse: () => BackgroundStyle.blanc);
       textScale = p.getDouble('textScale') ?? 1.0;
       dataSaver = p.getBool('dataSaver') ?? false;
       dailyReminder = p.getBool('dailyReminder') ?? false;
@@ -108,6 +106,10 @@ class AppState extends ChangeNotifier {
 
   CourseModule moduleOf(Lesson lesson) =>
       course.modules.firstWhere((m) => m.lessons.any((l) => l.number == lesson.number));
+
+  bool get allDone => completedCount >= course.lessonCount;
+
+  int completedIn(CourseModule module) => module.lessons.where((l) => _completed.contains(l.number)).length;
 
   double get courseProgress => course.lessonCount == 0 ? 0 : completedCount / course.lessonCount;
   int get level => xp ~/ xpPerLevel + 1;

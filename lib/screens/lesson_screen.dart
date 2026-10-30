@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/course.dart';
@@ -7,7 +8,8 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/illustrations.dart';
 
-/// Une leçon BARRO racontée comme une petite histoire, en 6 étapes.
+/// Une leçon racontée comme une story, en 6 étapes :
+/// Intro · Vidéo · L'essentiel · À toi · Quiz · Bravo.
 class LessonScreen extends StatefulWidget {
   final Lesson lesson;
 
@@ -18,49 +20,67 @@ class LessonScreen extends StatefulWidget {
 }
 
 class _LessonScreenState extends State<LessonScreen> {
-  static const _stepNames = ['Le savais-tu ?', 'La démonstration', 'L\'essentiel', 'À toi de faire', 'Quiz', 'Bravo'];
+  static const _stepCount = 6;
 
   int _step = 0;
   int _revealed = 1;
   int _question = 0;
+  int _correct = 0;
+  int _combo = 0;
   int? _picked;
   bool _checked = false;
-  int _correct = 0;
+  bool _committed = false;
   bool _saved = false;
 
   Lesson get lesson => widget.lesson;
-  int get _earnedXp => 10 + 10 * _correct;
+  int get _earnedXp => 10 + 10 * _correct + (_committed ? 5 : 0);
   bool get _lastQuestion => _question == lesson.quiz.length - 1;
 
   void _next() {
-    setState(() {
-      switch (_step) {
-        case 2:
-          if (_revealed < lesson.essentials.length) {
-            _revealed++;
-          } else {
-            _step++;
-          }
-          break;
-        case 4:
-          if (!_checked) {
+    switch (_step) {
+      case 2:
+        if (_revealed < lesson.essentials.length) {
+          setState(() => _revealed++);
+          HapticFeedback.selectionClick();
+          return;
+        }
+        break;
+      case 4:
+        if (!_checked) {
+          final right = _picked == lesson.quiz[_question].answer;
+          setState(() {
             _checked = true;
-            if (_picked == lesson.quiz[_question].answer) _correct++;
-          } else if (!_lastQuestion) {
+            if (right) {
+              _correct++;
+              _combo++;
+            } else {
+              _combo = 0;
+            }
+          });
+          if (right) {
+            HapticFeedback.lightImpact();
+          } else {
+            HapticFeedback.mediumImpact();
+          }
+          return;
+        }
+        if (!_lastQuestion) {
+          setState(() {
             _question++;
             _picked = null;
             _checked = false;
-          } else {
-            _step = 5;
-          }
-          break;
-        default:
-          if (_step < 5) _step++;
+          });
+          return;
+        }
+        break;
+    }
+    if (_step < _stepCount - 1) {
+      setState(() => _step++);
+      if (_step == _stepCount - 1 && !_saved) {
+        _saved = true;
+        AppState.instance.completeLesson(lesson, _earnedXp);
+        HapticFeedback.heavyImpact();
       }
-    });
-    if (_step == 5 && !_saved) {
-      _saved = true;
-      AppState.instance.completeLesson(lesson, _earnedXp);
     }
   }
 
@@ -70,19 +90,19 @@ class _LessonScreenState extends State<LessonScreen> {
       Navigator.of(context).pop();
       return;
     }
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => LessonScreen(lesson: next)));
+    Navigator.of(context).pushReplacement(barroRoute(LessonScreen(lesson: next)));
   }
 
   String get _buttonLabel {
     switch (_step) {
       case 0:
-        return 'Découvrir';
+        return 'Découvrir la leçon';
       case 1:
-        return 'Continuer';
+        return lesson.videoUrl != null ? 'J\'ai regardé, continuer' : 'Continuer';
       case 2:
         return _revealed < lesson.essentials.length ? 'Point suivant' : 'J\'ai compris';
       case 3:
-        return 'Je vais le faire';
+        return _committed ? 'C\'est noté, au quiz !' : 'Passer au quiz';
       case 4:
         if (!_checked) return 'Vérifier';
         return _lastQuestion ? 'Voir mon résultat' : 'Question suivante';
@@ -92,7 +112,7 @@ class _LessonScreenState extends State<LessonScreen> {
   }
 
   VoidCallback? get _buttonAction {
-    if (_step == 5) return _goToNextLesson;
+    if (_step == _stepCount - 1) return _goToNextLesson;
     if (_step == 4 && !_checked && _picked == null) return null;
     return _next;
   }
@@ -100,63 +120,84 @@ class _LessonScreenState extends State<LessonScreen> {
   @override
   Widget build(BuildContext context) {
     final module = AppState.instance.moduleOf(lesson);
+    final q = lesson.quiz[_question];
     return BarroPage(
       child: Stack(
         children: [
           Column(
             children: [
-              TabHeader(
-                title: _StepBar(step: _step, count: _stepNames.length),
-                actions: [Pill(label: '+$_earnedXp XP', background: BarroColors.orange, foreground: BarroColors.ink)],
-                onBack: () => Navigator.of(context).pop(),
-              ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'MODULE ${module.number} · LEÇON ${lesson.number} · ${_stepNames[_step].toUpperCase()}',
-                    style: body(11, color: BarroColors.muted, weight: FontWeight.w800),
-                  ),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                child: Row(
+                  children: [
+                    RoundIconButton(icon: Icons.close, tooltip: 'Fermer la leçon', onPressed: () => Navigator.of(context).pop()),
+                    const SizedBox(width: 12),
+                    Expanded(child: _StoryBar(step: _step, count: _stepCount)),
+                    const SizedBox(width: 12),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      transitionBuilder: (child, a) => ScaleTransition(scale: a, child: child),
+                      child: Pill(
+                        key: ValueKey(_earnedXp),
+                        label: '+$_earnedXp XP',
+                        background: BarroColors.orangeSoft,
+                        foreground: BarroColors.orangeText,
+                        icon: Icons.bolt,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 280),
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
                   transitionBuilder: (child, animation) => FadeTransition(
                     opacity: animation,
                     child: SlideTransition(
-                      position: Tween(begin: const Offset(0.08, 0), end: Offset.zero).animate(animation),
+                      position: Tween(begin: const Offset(0.06, 0), end: Offset.zero).animate(animation),
                       child: child,
                     ),
                   ),
                   child: SingleChildScrollView(
-                    key: ValueKey('$_step-$_question-$_checked-$_revealed'),
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                    key: ValueKey('$_step-$_question'),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     child: _buildStep(module),
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (_step == 4 && _checked)
+                      FadeSlideIn(
+                        key: ValueKey('fb-$_question'),
+                        child: _Feedback(
+                          right: _picked == q.answer,
+                          combo: _combo,
+                          answer: q.options[q.answer],
+                        ),
+                      ),
                     PrimaryButton(
                       label: _buttonLabel,
                       onPressed: _buttonAction,
-                      icon: _step == 5 ? Icons.arrow_forward : null,
+                      icon: _step == _stepCount - 1 ? Icons.arrow_forward : null,
                     ),
-                    if (_step == 5)
+                    if (_step == _stepCount - 1)
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Text('Retour au parcours', style: body(14, color: BarroColors.muted, weight: FontWeight.w700)),
+                        child: Text('Retour au parcours',
+                            style: body(14, color: BarroColors.muted, weight: FontWeight.w700)),
                       ),
                   ],
                 ),
               ),
             ],
           ),
-          if (_step == 5) const Positioned.fill(child: Confetti()),
+          if (_step == _stepCount - 1) const Positioned.fill(child: Confetti()),
         ],
       ),
     );
@@ -165,19 +206,29 @@ class _LessonScreenState extends State<LessonScreen> {
   Widget _buildStep(CourseModule module) {
     switch (_step) {
       case 0:
-        return _HookStep(lesson: lesson, module: module);
+        return _IntroStep(lesson: lesson, module: module);
       case 1:
         return _VideoStep(lesson: lesson);
       case 2:
         return _EssentialsStep(
           lesson: lesson,
           revealed: _revealed,
-          onReveal: () => setState(() {
-            if (_revealed < lesson.essentials.length) _revealed++;
-          }),
+          onReveal: () {
+            if (_revealed < lesson.essentials.length) {
+              setState(() => _revealed++);
+              HapticFeedback.selectionClick();
+            }
+          },
         );
       case 3:
-        return _TaskStep(lesson: lesson);
+        return _ActionStep(
+          lesson: lesson,
+          committed: _committed,
+          onToggle: () {
+            setState(() => _committed = !_committed);
+            HapticFeedback.selectionClick();
+          },
+        );
       case 4:
         return _QuizStep(
           question: lesson.quiz[_question],
@@ -186,7 +237,9 @@ class _LessonScreenState extends State<LessonScreen> {
           picked: _picked,
           checked: _checked,
           onPick: (i) {
-            if (!_checked) setState(() => _picked = i);
+            if (_checked) return;
+            setState(() => _picked = i);
+            HapticFeedback.selectionClick();
           },
         );
       default:
@@ -200,77 +253,123 @@ class _LessonScreenState extends State<LessonScreen> {
   }
 }
 
-class _StepBar extends StatelessWidget {
+/// Barre de progression façon story, un segment par étape.
+class _StoryBar extends StatelessWidget {
   final int step;
   final int count;
 
-  const _StepBar({required this.step, required this.count});
+  const _StoryBar({required this.step, required this.count});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var i = 0; i < count; i++) ...[
-          Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              height: 6,
-              decoration: BoxDecoration(
-                color: i <= step ? BarroColors.green : BarroColors.border,
-                borderRadius: BorderRadius.circular(99),
+    return Semantics(
+      label: 'Étape ${step + 1} sur $count',
+      child: Row(
+        children: [
+          for (var i = 0; i < count; i++) ...[
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                height: 5,
+                decoration: BoxDecoration(
+                  color: i <= step ? BarroColors.green : BarroColors.line,
+                  borderRadius: BorderRadius.circular(99),
+                ),
               ),
             ),
-          ),
-          if (i < count - 1) const SizedBox(width: 5),
+            if (i < count - 1) const SizedBox(width: 4),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
 
-class _HookStep extends StatelessWidget {
+class _IntroStep extends StatelessWidget {
   final Lesson lesson;
   final CourseModule module;
 
-  const _HookStep({required this.lesson, required this.module});
+  const _IntroStep({required this.lesson, required this.module});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FadeSlideIn(child: ChickScene(prop: propForModule(module.number), height: 190)),
+        FadeSlideIn(
+          child: Container(
+            height: 210,
+            decoration: BoxDecoration(color: BarroColors.greenSoft, borderRadius: BorderRadius.circular(28)),
+            clipBehavior: Clip.antiAlias,
+            child: HenScene(height: 210, prop: propForModule(module.number)),
+          ),
+        ),
         const SizedBox(height: 18),
-        FadeSlideIn(index: 1, child: Text(lesson.title, style: display(26))),
-        const SizedBox(height: 14),
+        FadeSlideIn(index: 1, child: Text('MODULE ${module.number} · LEÇON ${lesson.number}', style: eyebrow())),
+        const SizedBox(height: 6),
+        FadeSlideIn(index: 1, child: Text(lesson.title, style: display(27))),
+        const SizedBox(height: 16),
         FadeSlideIn(
           index: 2,
           child: Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: BarroColors.orange, borderRadius: BorderRadius.circular(20)),
-            child: Column(
+            decoration: BoxDecoration(color: BarroColors.orangeSoft, borderRadius: BorderRadius.circular(20)),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.lightbulb, color: BarroColors.ink, size: 20),
-                    const SizedBox(width: 8),
-                    Text('LE SAVAIS-TU ?', style: body(12, color: BarroColors.ink, weight: FontWeight.w800)),
-                  ],
+                const Icon(Icons.lightbulb, color: BarroColors.orangeText),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('LE SAVAIS-TU ?', style: eyebrow(color: BarroColors.orangeText)),
+                      const SizedBox(height: 6),
+                      Text(lesson.hook, style: body(16, weight: FontWeight.w600, height: 1.45)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text(lesson.hook, style: body(16, color: BarroColors.ink, weight: FontWeight.w700, height: 1.45)),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         FadeSlideIn(
           index: 3,
-          child: Text('${lesson.minutes} minutes · 3 points à retenir · 3 questions',
-              style: body(13, color: BarroColors.muted)),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _Meta(icon: Icons.schedule, label: '${lesson.minutes} min'),
+              _Meta(icon: Icons.format_list_numbered, label: '${lesson.essentials.length} points clés'),
+              _Meta(icon: Icons.quiz_outlined, label: '${lesson.quiz.length} questions'),
+            ],
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _Meta extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _Meta({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(color: BarroColors.soft, borderRadius: BorderRadius.circular(99)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: BarroColors.muted),
+          const SizedBox(width: 6),
+          Text(label, style: body(13, weight: FontWeight.w700, height: 1.2)),
+        ],
+      ),
     );
   }
 }
@@ -305,38 +404,33 @@ class _VideoStep extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Regarde avant de lire', style: display(24)),
+        Text('Regarde la démonstration', style: display(24)),
         const SizedBox(height: 6),
-        Text('Une courte démonstration montre les gestes de la leçon.', style: body(14, color: BarroColors.muted)),
+        Text('Quelques minutes pour voir les bons gestes.', style: body(14, color: BarroColors.muted)),
         const SizedBox(height: 16),
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: Material(
-            color: BarroColors.deepBlue,
-            borderRadius: BorderRadius.circular(22),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(22),
-              onTap: () => _open(context),
-              child: Stack(
-                children: [
-                  const Center(
-                    child: CircleAvatar(
-                      radius: 34,
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.play_arrow_rounded, size: 40, color: BarroColors.deepBlue),
+        FadeSlideIn(
+          child: Tap(
+            onTap: () => _open(context),
+            semanticLabel: hasVideo ? 'Ouvrir la vidéo' : 'Vidéo bientôt disponible',
+            child: AspectRatio(
+              aspectRatio: 16 / 10,
+              child: Container(
+                decoration: BoxDecoration(color: BarroColors.greenDeep, borderRadius: BorderRadius.circular(26)),
+                child: Stack(
+                  children: [
+                    const Center(child: PulsePlay()),
+                    Positioned(
+                      left: 14,
+                      bottom: 14,
+                      child: Pill(
+                        label: hasVideo ? 'S\'ouvre dans YouTube' : 'Vidéo bientôt',
+                        background: Colors.white,
+                        foreground: BarroColors.greenDeep,
+                        icon: hasVideo ? Icons.smart_display_outlined : Icons.schedule,
+                      ),
                     ),
-                  ),
-                  Positioned(
-                    left: 14,
-                    bottom: 12,
-                    child: Pill(
-                      label: hasVideo ? 'Ouvrir la vidéo' : 'Vidéo bientôt',
-                      background: BarroColors.ink,
-                      foreground: Colors.white,
-                      icon: hasVideo ? Icons.smart_display_outlined : Icons.schedule,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -344,9 +438,9 @@ class _VideoStep extends StatelessWidget {
         const SizedBox(height: 14),
         Text(
           hasVideo
-              ? 'La vidéo s\'ouvre dans YouTube. Reviens ensuite ici pour la suite de la leçon.'
+              ? 'Regarde la vidéo, puis reviens ici : la suite de la leçon t\'attend.'
               : 'Pas encore de vidéo pour cette leçon : passe directement à l\'essentiel.',
-          style: body(13, color: BarroColors.muted),
+          style: body(14, color: BarroColors.muted),
         ),
       ],
     );
@@ -360,78 +454,108 @@ class _EssentialsStep extends StatelessWidget {
 
   const _EssentialsStep({required this.lesson, required this.revealed, required this.onReveal});
 
-  static const _colors = [BarroColors.green, BarroColors.blue, BarroColors.orange];
-
   @override
   Widget build(BuildContext context) {
+    final total = lesson.essentials.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('L\'essentiel', style: display(24)),
         const SizedBox(height: 6),
-        Text('Découvre les points un par un.', style: body(14, color: BarroColors.muted)),
+        Text('$total points à retenir. Découvre-les un par un.', style: body(14, color: BarroColors.muted)),
         const SizedBox(height: 16),
-        for (var i = 0; i < lesson.essentials.length; i++)
+        for (var i = 0; i < total; i++)
           i < revealed
-              ? FadeSlideIn(
-                  index: i == revealed - 1 ? 0 : -4,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: _colors[i % 3], borderRadius: BorderRadius.circular(20)),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CircleAvatar(
-                          radius: 15,
-                          backgroundColor: BarroColors.ink,
-                          child: Text('${i + 1}', style: body(14, color: Colors.white, weight: FontWeight.w800)),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(lesson.essentials[i],
-                              style: body(16, color: BarroColors.ink, weight: FontWeight.w700, height: 1.45)),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Material(
-                    color: BarroColors.surface,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: const BorderSide(color: BarroColors.border),
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: i == revealed ? onReveal : null,
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Row(
-                          children: [
-                            Icon(i == revealed ? Icons.touch_app_outlined : Icons.lock_outline, color: BarroColors.muted),
-                            const SizedBox(width: 12),
-                            Text(
-                              i == revealed ? 'Point ${i + 1} · touche pour découvrir' : 'Point ${i + 1}',
-                              style: body(15, color: BarroColors.muted, weight: FontWeight.w700),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              ? FadeSlideIn(child: _EssentialCard(number: i + 1, text: lesson.essentials[i]))
+              : _HiddenCard(number: i + 1, active: i == revealed, onTap: onReveal),
+        if (revealed == total)
+          FadeSlideIn(
+            index: 2,
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, color: BarroColors.green, size: 20),
+                const SizedBox(width: 8),
+                Text('Bravo, tu connais l\'essentiel.', style: body(14, color: BarroColors.greenText, weight: FontWeight.w800)),
+              ],
+            ),
+          ),
       ],
     );
   }
 }
 
-class _TaskStep extends StatelessWidget {
-  final Lesson lesson;
+class _EssentialCard extends StatelessWidget {
+  final int number;
+  final String text;
 
-  const _TaskStep({required this.lesson});
+  const _EssentialCard({required this.number, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: BarroColors.line),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 34, child: Text('$number', style: display(30, color: BarroColors.green, height: 1.0))),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: body(16, weight: FontWeight.w600, height: 1.5))),
+        ],
+      ),
+    );
+  }
+}
+
+class _HiddenCard extends StatelessWidget {
+  final int number;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _HiddenCard({required this.number, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Tap(
+        onTap: active ? onTap : null,
+        semanticLabel: 'Découvrir le point $number',
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: BarroColors.soft,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: active ? BarroColors.green : BarroColors.soft, width: 1.5),
+          ),
+          child: Row(
+            children: [
+              Icon(active ? Icons.touch_app_outlined : Icons.lock_outline,
+                  color: active ? BarroColors.greenText : BarroColors.faint),
+              const SizedBox(width: 12),
+              Text(
+                active ? 'Point $number · touche pour découvrir' : 'Point $number',
+                style: body(15, color: active ? BarroColors.greenText : BarroColors.faint, weight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionStep extends StatelessWidget {
+  final Lesson lesson;
+  final bool committed;
+  final VoidCallback onToggle;
+
+  const _ActionStep({required this.lesson, required this.committed, required this.onToggle});
 
   @override
   Widget build(BuildContext context) {
@@ -446,21 +570,51 @@ class _TaskStep extends StatelessWidget {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: BarroColors.deepViolet, borderRadius: BorderRadius.circular(24)),
+            decoration: BoxDecoration(color: BarroColors.greenSoft, borderRadius: BorderRadius.circular(24)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const CircleAvatar(
-                  radius: 26,
+                  radius: 24,
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.photo_camera_outlined, color: BarroColors.deepViolet, size: 26),
+                  child: Icon(Icons.photo_camera_outlined, color: BarroColors.greenText),
                 ),
                 const SizedBox(height: 16),
-                Text(lesson.task, style: body(18, color: Colors.white, weight: FontWeight.w800, height: 1.4)),
-                const SizedBox(height: 14),
+                Text(lesson.task, style: display(19, weight: FontWeight.w600, height: 1.35)),
+                const SizedBox(height: 12),
                 Text('Bientôt : envoie ta photo comme preuve et gagne des XP en plus.',
-                    style: body(13, color: const Color(0xFFE4DBFF))),
+                    style: body(13, color: BarroColors.inkSoft)),
               ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        FadeSlideIn(
+          index: 1,
+          child: Tap(
+            onTap: onToggle,
+            semanticLabel: 'Je m\'engage à le faire aujourd\'hui',
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: committed ? BarroColors.greenDeep : Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: committed ? BarroColors.greenDeep : BarroColors.line),
+              ),
+              child: Row(
+                children: [
+                  Icon(committed ? Icons.check_circle : Icons.radio_button_unchecked,
+                      color: committed ? Colors.white : BarroColors.faint),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Je m\'engage à le faire aujourd\'hui',
+                        style: body(15, color: committed ? Colors.white : BarroColors.ink, weight: FontWeight.w700)),
+                  ),
+                  Text('+5 XP',
+                      style: body(13, color: committed ? BarroColors.sun : BarroColors.orangeText, weight: FontWeight.w800)),
+                ],
+              ),
             ),
           ),
         ),
@@ -486,92 +640,140 @@ class _QuizStep extends StatelessWidget {
     required this.onPick,
   });
 
+  static const _letters = ['A', 'B', 'C', 'D', 'E'];
+
   @override
   Widget build(BuildContext context) {
-    final right = picked == question.answer;
-    String status = 'Question ${index + 1} sur $total';
-    Color statusColor = BarroColors.muted;
-    if (checked) {
-      status = right ? 'Bravo, bonne réponse !' : 'Pas tout à fait. La bonne réponse est en vert.';
-      statusColor = right ? BarroColors.green : BarroColors.red;
-    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             for (var i = 0; i < total; i++)
-              Container(
-                width: 10,
-                height: 10,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: i == index ? 22 : 8,
+                height: 8,
                 margin: const EdgeInsets.only(right: 6),
                 decoration: BoxDecoration(
-                  color: i < index || (i == index && checked) ? BarroColors.green : BarroColors.border,
-                  shape: BoxShape.circle,
+                  color: i < index || (i == index && checked)
+                      ? BarroColors.green
+                      : (i == index ? BarroColors.greenMid : BarroColors.line),
+                  borderRadius: BorderRadius.circular(99),
                 ),
               ),
-            const SizedBox(width: 6),
-            Expanded(child: Text(status, style: body(13, color: statusColor, weight: FontWeight.w800))),
+            const Spacer(),
+            Text('Question ${index + 1}/$total', style: body(13, color: BarroColors.muted, weight: FontWeight.w700)),
           ],
         ),
-        const SizedBox(height: 12),
-        Text(question.question, style: display(22)),
+        const SizedBox(height: 16),
+        Text(question.question, style: display(22, height: 1.25)),
         const SizedBox(height: 18),
-        for (var i = 0; i < question.options.length; i++) FadeSlideIn(index: i, child: _option(i)),
+        for (var i = 0; i < question.options.length; i++)
+          FadeSlideIn(index: i, child: _option(i, _letters[i % _letters.length])),
       ],
     );
   }
 
-  Widget _option(int i) {
-    Color border = BarroColors.border;
-    Color background = BarroColors.surface;
-    IconData mark = Icons.radio_button_unchecked;
-    Color markColor = BarroColors.muted;
+  Widget _option(int i, String letter) {
+    Color bg = Colors.white;
+    Color border = BarroColors.line;
+    Color badgeBg = BarroColors.soft;
+    Color badgeFg = BarroColors.ink;
+    Widget badgeChild = Text(letter, style: display(14, color: badgeFg));
+    double opacity = 1;
 
-    if (!checked && picked == i) {
-      border = BarroColors.blue;
-      background = const Color(0xFF10203F);
-      mark = Icons.radio_button_checked;
-      markColor = BarroColors.blue;
-    }
-    if (checked && i == question.answer) {
+    final isAnswer = i == question.answer;
+    final isPicked = picked == i;
+
+    if (!checked && isPicked) {
       border = BarroColors.green;
-      background = const Color(0xFF0E2A1D);
-      mark = Icons.check_circle;
-      markColor = BarroColors.green;
-    } else if (checked && picked == i) {
-      border = BarroColors.red;
-      background = const Color(0xFF2E1420);
-      mark = Icons.cancel;
-      markColor = BarroColors.red;
+      badgeBg = BarroColors.green;
+      badgeChild = Text(letter, style: display(14, color: Colors.white));
+    }
+    if (checked) {
+      if (isAnswer) {
+        bg = BarroColors.greenSoft;
+        border = BarroColors.green;
+        badgeBg = BarroColors.green;
+        badgeChild = const Icon(Icons.check, size: 16, color: Colors.white);
+      } else if (isPicked) {
+        bg = BarroColors.redSoft;
+        border = BarroColors.red;
+        badgeBg = BarroColors.red;
+        badgeChild = const Icon(Icons.close, size: 16, color: Colors.white);
+      } else {
+        opacity = 0.55;
+      }
     }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: AnimatedScale(
-        scale: !checked && picked == i ? 1.02 : 1.0,
-        duration: const Duration(milliseconds: 150),
-        child: Material(
-          color: background,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: border, width: 2),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () => onPick(i),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-              child: Row(
-                children: [
-                  Icon(mark, color: markColor),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(question.options[i], style: body(15, weight: FontWeight.w600))),
-                ],
-              ),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: opacity,
+        child: Tap(
+          onTap: () => onPick(i),
+          semanticLabel: 'Réponse $letter : ${question.options[i]}',
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: border, width: isPicked || (checked && isAnswer) ? 2 : 1),
+            ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: badgeBg, shape: BoxShape.circle),
+                  child: badgeChild,
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(question.options[i], style: body(15, weight: FontWeight.w600))),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _Feedback extends StatelessWidget {
+  final bool right;
+  final int combo;
+  final String answer;
+
+  const _Feedback({required this.right, required this.combo, required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = right
+        ? (combo >= 2 ? 'Bonne réponse ! $combo d\'affilée' : 'Bonne réponse !')
+        : 'Presque. La bonne réponse : $answer';
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: right ? BarroColors.greenSoft : BarroColors.redSoft,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(right ? Icons.check_circle : Icons.info_outline, color: right ? BarroColors.green : BarroColors.red),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text,
+                style: body(14, color: right ? BarroColors.greenText : BarroColors.red, weight: FontWeight.w800)),
+          ),
+          if (right) Text('+10 XP', style: body(13, color: BarroColors.greenText, weight: FontWeight.w800)),
+        ],
       ),
     );
   }
@@ -587,66 +789,96 @@ class _RewardStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final streak = AppState.instance.streak;
     final message = correct == total
         ? 'Parfait, tu as tout bon !'
         : correct == 0
-            ? 'Pas grave : relis l\'essentiel plus tard, ça rentrera.'
+            ? 'Pas grave : relis l\'essentiel, ça va rentrer.'
             : 'Bien joué, tu progresses.';
+    final nextLesson = next;
     return Column(
       children: [
         const SizedBox(height: 8),
         TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.6, end: 1),
-          duration: const Duration(milliseconds: 600),
+          tween: Tween(begin: 0.5, end: 1),
+          duration: const Duration(milliseconds: 700),
           curve: Curves.elasticOut,
           builder: (context, s, child) => Transform.scale(scale: s, child: child),
           child: Container(
-            width: 130,
-            height: 130,
-            decoration: const BoxDecoration(color: BarroColors.orange, shape: BoxShape.circle),
-            child: const Icon(Icons.emoji_events, size: 68, color: BarroColors.ink),
+            width: 116,
+            height: 116,
+            decoration: const BoxDecoration(color: BarroColors.greenDeep, shape: BoxShape.circle),
+            child: const Icon(Icons.emoji_events, size: 58, color: BarroColors.sun),
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
         TweenAnimationBuilder<int>(
           tween: IntTween(begin: 0, end: xp),
           duration: const Duration(milliseconds: 900),
-          builder: (context, v, _) => Text('+$v XP', style: display(44, color: BarroColors.green)),
+          builder: (context, v, _) => Text('+$v XP', style: display(44, color: BarroColors.green, weight: FontWeight.w800)),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text('$correct bonne${correct > 1 ? 's' : ''} réponse${correct > 1 ? 's' : ''} sur $total',
             style: body(16, weight: FontWeight.w700)),
         const SizedBox(height: 4),
         Text(message, textAlign: TextAlign.center, style: body(14, color: BarroColors.muted)),
+        const SizedBox(height: 14),
+        Pill(
+          label: 'Série : $streak jour${streak > 1 ? 's' : ''}',
+          background: BarroColors.orangeSoft,
+          foreground: BarroColors.orangeText,
+          icon: Icons.local_fire_department,
+        ),
         const SizedBox(height: 20),
-        if (next != null)
+        if (nextLesson != null)
           FadeSlideIn(
             index: 3,
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF10203F),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: BarroColors.blue, width: 2),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: BarroColors.line),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text('DANS LA PROCHAINE LEÇON', style: body(12, color: const Color(0xFFBFD5FF), weight: FontWeight.w800)),
-                  const SizedBox(height: 6),
-                  Text(next!.title, style: body(17, weight: FontWeight.w800, height: 1.3)),
-                  const SizedBox(height: 6),
-                  Text(next!.hook, style: body(14, color: const Color(0xFFBFD5FF), height: 1.4)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('DANS LA PROCHAINE LEÇON', style: eyebrow()),
+                        const SizedBox(height: 6),
+                        Text(nextLesson.title, style: display(17, height: 1.25)),
+                        const SizedBox(height: 6),
+                        Text(nextLesson.hook,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: body(14, color: BarroColors.muted, height: 1.4)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    width: 84,
+                    height: 84,
+                    decoration: BoxDecoration(color: BarroColors.greenSoft, borderRadius: BorderRadius.circular(18)),
+                    clipBehavior: Clip.antiAlias,
+                    child: HenScene(
+                      height: 84,
+                      compact: true,
+                      prop: propForModule(AppState.instance.moduleOf(nextLesson).number),
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-        if (next == null)
+          )
+        else
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: BarroColors.emerald, borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: BarroColors.greenDeep, borderRadius: BorderRadius.circular(20)),
             child: Text('Tu as fini les 15 leçons ! L\'examen final arrive bientôt pour obtenir ton attestation.',
                 style: body(15, color: Colors.white, weight: FontWeight.w700)),
           ),

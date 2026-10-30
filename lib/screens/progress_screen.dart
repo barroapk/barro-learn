@@ -7,7 +7,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import 'settings_screen.dart';
 
-/// Onglet « Progrès » : niveau, statistiques, défi et attestation.
+/// Onglet « Progrès » : niveau, statistiques, défi, badges et attestation.
 class ProgressScreen extends StatelessWidget {
   const ProgressScreen({super.key});
 
@@ -17,12 +17,12 @@ class ProgressScreen extends StatelessWidget {
     return Column(
       children: [
         TabHeader(
-          title: Text('Ton progrès', style: display(26)),
+          title: Text('Ton progrès', style: display(22)),
           actions: [
-            SquareIconButton(
+            RoundIconButton(
               icon: Icons.settings_outlined,
               tooltip: 'Paramètres',
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+              onPressed: () => Navigator.of(context).push(barroRoute(const SettingsScreen())),
             ),
           ],
         ),
@@ -30,83 +30,94 @@ class ProgressScreen extends StatelessWidget {
           child: ListenableBuilder(
             listenable: state,
             builder: (context, _) {
-              final challengeDone = math.min(state.completedCount, 3);
-              final allDone = state.completedCount == state.course.lessonCount;
               final name = state.learnerName.isEmpty ? 'Apprenant BARRO' : state.learnerName;
-              final initial = name.characters.first.toUpperCase();
+              final challengeDone = math.min(state.completedCount, 3);
+              final badges = [
+                _BadgeData('Premier pas', Icons.flag_outlined, state.completedCount >= 1, BarroColors.greenText,
+                    BarroColors.greenSoft),
+                _BadgeData('Module 1', Icons.home_work_outlined, state.completedCount >= 5, BarroColors.blue,
+                    BarroColors.blueSoft),
+                _BadgeData('3 jours', Icons.local_fire_department, state.streak >= 3, BarroColors.orangeText,
+                    BarroColors.orangeSoft),
+                _BadgeData('Éleveur', Icons.workspace_premium_outlined, state.allDone, BarroColors.violet,
+                    BarroColors.violetSoft),
+              ];
               return ListView(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
                 children: [
                   FadeSlideIn(
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: BarroColors.green,
-                          child: Text(initial, style: display(24, color: BarroColors.ink)),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(child: Text(name, style: body(17, weight: FontWeight.w800))),
-                                  Text('Niveau ${state.level}',
-                                      style: body(13, color: BarroColors.green, weight: FontWeight.w700)),
-                                ],
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(color: BarroColors.greenSoft, borderRadius: BorderRadius.circular(26)),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 96,
+                            height: 96,
+                            child: TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0, end: state.xpInLevel / AppState.xpPerLevel),
+                              duration: const Duration(milliseconds: 900),
+                              curve: Curves.easeOutCubic,
+                              builder: (context, v, _) => CustomPaint(
+                                painter: _RingPainter(v),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text('${state.level}', style: display(28, height: 1)),
+                                      Text('niveau', style: body(11, color: BarroColors.muted, weight: FontWeight.w700)),
+                                    ],
+                                  ),
+                                ),
                               ),
-                              const SizedBox(height: 6),
-                              BarroProgressBar(value: state.xpInLevel / AppState.xpPerLevel),
-                              const SizedBox(height: 4),
-                              Text('${state.xpInLevel} / ${AppState.xpPerLevel} XP avant le niveau ${state.level + 1}',
-                                  style: body(12, color: BarroColors.muted)),
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(name, style: display(19)),
+                                const SizedBox(height: 4),
+                                Text('${state.xpInLevel} / ${AppState.xpPerLevel} XP',
+                                    style: body(14, color: BarroColors.greenText, weight: FontWeight.w800)),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Encore ${AppState.xpPerLevel - state.xpInLevel} XP pour le niveau ${state.level + 1}',
+                                  style: body(12, color: BarroColors.inkSoft),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  FadeSlideIn(
-                    index: 1,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _Stat(
-                            value: '${state.streak}',
-                            label: state.streak > 1 ? 'jours de série' : 'jour de série',
-                            color: BarroColors.orange,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(child: _Stat(value: '${state.completedCount}', label: 'leçons finies', color: BarroColors.blue)),
-                        const SizedBox(width: 10),
-                        Expanded(child: _Stat(value: '${state.xp}', label: 'XP gagnés', color: BarroColors.green)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
+                  const FadeSlideIn(index: 1, child: StatsStrip()),
+                  const SizedBox(height: 14),
                   FadeSlideIn(
                     index: 2,
                     child: Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: BarroColors.deepViolet, borderRadius: BorderRadius.circular(22)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: BarroColors.line),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Text('DÉFI DE LA SEMAINE',
-                                  style: body(12, color: const Color(0xFFE4DBFF), weight: FontWeight.w800)),
+                              Text('DÉFI DE LA SEMAINE', style: eyebrow(color: BarroColors.violet)),
                               const Spacer(),
-                              const Pill(label: '+100 XP', background: Colors.white, foreground: BarroColors.deepViolet),
+                              const Pill(label: '+100 XP', background: BarroColors.violetSoft, foreground: BarroColors.violet),
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          Text('Termine 3 leçons', style: body(17, color: Colors.white, weight: FontWeight.w800)),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
+                          Text('Termine 3 leçons', style: display(17)),
+                          const SizedBox(height: 12),
                           Row(
                             children: [
                               for (var i = 0; i < 3; i++) ...[
@@ -115,7 +126,7 @@ class ProgressScreen extends StatelessWidget {
                                     duration: const Duration(milliseconds: 400),
                                     height: 8,
                                     decoration: BoxDecoration(
-                                      color: i < challengeDone ? Colors.white : const Color(0xFF7C3AED),
+                                      color: i < challengeDone ? BarroColors.violet : BarroColors.line,
                                       borderRadius: BorderRadius.circular(99),
                                     ),
                                   ),
@@ -124,35 +135,75 @@ class ProgressScreen extends StatelessWidget {
                               ],
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text('$challengeDone sur 3', style: body(12, color: const Color(0xFFE4DBFF))),
+                          const SizedBox(height: 6),
+                          Text('$challengeDone sur 3', style: body(12, color: BarroColors.muted)),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
                   FadeSlideIn(
                     index: 3,
                     child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: const Color(0xFF10203F), borderRadius: BorderRadius.circular(18)),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: BarroColors.soft, borderRadius: BorderRadius.circular(20)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const SoftIcon(icon: Icons.egg_outlined, tint: Colors.white, color: BarroColors.greenText),
+                              const SizedBox(width: 12),
+                              Expanded(child: Text(state.course.title, style: body(15, weight: FontWeight.w800))),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          BarroProgressBar(value: state.courseProgress, height: 8),
+                          const SizedBox(height: 6),
+                          Text('${state.completedCount} sur ${state.course.lessonCount} leçons',
+                              style: body(12, color: BarroColors.muted)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const FadeSlideIn(index: 4, child: SectionTitle('Badges')),
+                  const SizedBox(height: 12),
+                  FadeSlideIn(
+                    index: 5,
+                    child: Row(
+                      children: [for (final b in badges) Expanded(child: _Badge(data: b))],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FadeSlideIn(
+                    index: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: state.allDone ? BarroColors.greenDeep : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: state.allDone ? BarroColors.greenDeep : BarroColors.line),
+                      ),
                       child: Row(
                         children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(color: BarroColors.blue, borderRadius: BorderRadius.circular(14)),
-                            child: const Icon(Icons.workspace_premium_outlined, color: BarroColors.ink),
-                          ),
+                          Icon(Icons.workspace_premium_outlined,
+                              size: 30, color: state.allDone ? BarroColors.sun : BarroColors.faint),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Attestation · ${state.course.title}', style: body(14, weight: FontWeight.w800)),
+                                Text('Attestation BARRO',
+                                    style: body(15,
+                                        color: state.allDone ? Colors.white : BarroColors.ink, weight: FontWeight.w800)),
                                 const SizedBox(height: 2),
-                                Text(allDone ? 'Examen final bientôt disponible' : 'Débloquée après les 15 leçons et l\'examen',
-                                    style: body(12, color: const Color(0xFFBFD5FF))),
+                                Text(
+                                  state.allDone
+                                      ? 'Examen final bientôt disponible'
+                                      : 'Débloquée après les 15 leçons et l\'examen',
+                                  style: body(12, color: state.allDone ? BarroColors.greenMid : BarroColors.muted),
+                                ),
                               ],
                             ),
                           ),
@@ -160,8 +211,6 @@ class ProgressScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  Text('Classement entre amis : bientôt disponible.', style: body(13, color: BarroColors.muted)),
                 ],
               );
             },
@@ -172,24 +221,82 @@ class ProgressScreen extends StatelessWidget {
   }
 }
 
-class _Stat extends StatelessWidget {
-  final String value;
-  final String label;
-  final Color color;
+class _RingPainter extends CustomPainter {
+  final double value;
 
-  const _Stat({required this.value, required this.label, required this.color});
+  _RingPainter(this.value);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 9.0;
+    final rect = Offset.zero & size;
+    final arcRect = rect.deflate(stroke / 2);
+    canvas.drawArc(
+      arcRect,
+      0,
+      2 * math.pi,
+      false,
+      Paint()
+        ..color = BarroColors.greenMid
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke,
+    );
+    if (value > 0) {
+      canvas.drawArc(
+        arcRect,
+        -math.pi / 2,
+        2 * math.pi * value,
+        false,
+        Paint()
+          ..color = BarroColors.green
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) => old.value != value;
+}
+
+class _BadgeData {
+  final String label;
+  final IconData icon;
+  final bool earned;
+  final Color color;
+  final Color tint;
+
+  const _BadgeData(this.label, this.icon, this.earned, this.color, this.tint);
+}
+
+class _Badge extends StatelessWidget {
+  final _BadgeData data;
+
+  const _Badge({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(18)),
+    return Semantics(
+      label: '${data.label} : ${data.earned ? 'obtenu' : 'à débloquer'}',
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, style: display(24, color: BarroColors.ink)),
-          const SizedBox(height: 2),
-          Text(label, style: body(12, color: BarroColors.ink, weight: FontWeight.w600)),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: data.earned ? data.tint : BarroColors.soft,
+              shape: BoxShape.circle,
+              border: Border.all(color: data.earned ? data.color : BarroColors.line, width: 2),
+            ),
+            child: Icon(data.earned ? data.icon : Icons.lock_outline,
+                color: data.earned ? data.color : BarroColors.faint, size: 26),
+          ),
+          const SizedBox(height: 6),
+          Text(data.label,
+              textAlign: TextAlign.center,
+              style: body(12, color: data.earned ? BarroColors.ink : BarroColors.muted, weight: FontWeight.w700)),
         ],
       ),
     );

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-/// Ce qui accompagne le poussin selon le module.
+/// Ce qui accompagne la poule selon le module.
 enum SceneProp { sun, water, coin }
 
 SceneProp propForModule(int moduleNumber) {
@@ -18,21 +18,22 @@ SceneProp propForModule(int moduleNumber) {
   }
 }
 
-/// Illustration dessinée : un poussin dans son décor, qui respire doucement.
-class ChickScene extends StatefulWidget {
-  final SceneProp prop;
-  final Color sky;
+/// Illustration géométrique : une poule qui respire, cligne des yeux et bat de l'aile.
+/// [compact] : version pour les cartes (poule en bas à droite, sans décor).
+class HenScene extends StatefulWidget {
   final double height;
+  final SceneProp prop;
+  final bool compact;
 
-  const ChickScene({super.key, required this.prop, this.sky = const Color(0xFF13233F), this.height = 200});
+  const HenScene({super.key, required this.height, this.prop = SceneProp.sun, this.compact = false});
 
   @override
-  State<ChickScene> createState() => _ChickSceneState();
+  State<HenScene> createState() => _HenSceneState();
 }
 
-class _ChickSceneState extends State<ChickScene> with SingleTickerProviderStateMixin {
+class _HenSceneState extends State<HenScene> with SingleTickerProviderStateMixin {
   late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 2400));
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 4200));
 
   @override
   void didChangeDependencies() {
@@ -40,7 +41,7 @@ class _ChickSceneState extends State<ChickScene> with SingleTickerProviderStateM
     if (MediaQuery.of(context).disableAnimations) {
       _c.stop();
     } else if (!_c.isAnimating) {
-      _c.repeat(reverse: true);
+      _c.repeat();
     }
   }
 
@@ -52,15 +53,14 @@ class _ChickSceneState extends State<ChickScene> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: SizedBox(
-        height: widget.height,
-        width: double.infinity,
+    return SizedBox(
+      height: widget.height,
+      width: double.infinity,
+      child: RepaintBoundary(
         child: AnimatedBuilder(
           animation: _c,
           builder: (context, _) => CustomPaint(
-            painter: _ChickPainter(prop: widget.prop, sky: widget.sky, t: Curves.easeInOut.transform(_c.value)),
+            painter: _HenPainter(v: _c.value, prop: widget.prop, compact: widget.compact),
           ),
         ),
       ),
@@ -68,179 +68,234 @@ class _ChickSceneState extends State<ChickScene> with SingleTickerProviderStateM
   }
 }
 
-class _ChickPainter extends CustomPainter {
+class _HenPainter extends CustomPainter {
+  final double v;
   final SceneProp prop;
-  final Color sky;
-  final double t;
+  final bool compact;
 
-  _ChickPainter({required this.prop, required this.sky, required this.t});
+  _HenPainter({required this.v, required this.prop, required this.compact});
 
-  static const _yellow = Color(0xFFFFD34D);
-  static const _yellowDark = Color(0xFFF2B526);
-  static const _beak = Color(0xFFFF8A3D);
+  static Path _poly(List<Offset> pts) {
+    final path = Path()..moveTo(pts.first.dx, pts.first.dy);
+    for (final q in pts.skip(1)) {
+      path.lineTo(q.dx, q.dy);
+    }
+    return path..close();
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
-    canvas.drawRect(Offset.zero & size, Paint()..color = sky);
+    final wave = math.sin(v * 2 * math.pi);
+    final blink = v < 0.035 || (v > 0.52 && v < 0.55);
 
-    // Sol
+    if (compact) {
+      final s = h * 0.78 / 200;
+      final o = Offset(w - 222 * s, h - 194 * s);
+      canvas.drawCircle(o + Offset(190 * s, 40 * s), 26 * s * (1 + 0.05 * wave), Paint()..color = BarroColors.sun);
+      canvas.drawOval(
+        Rect.fromCenter(center: o + Offset(118 * s, 190 * s), width: 144 * s, height: 14 * s),
+        Paint()..color = BarroColors.greenMid,
+      );
+      _hen(canvas, o, s, wave, blink);
+      return;
+    }
+
+    canvas.drawCircle(Offset(w * 0.84, h * 0.24), h * 0.15 * (1 + 0.04 * wave), Paint()..color = BarroColors.sun);
     final ground = Path()
-      ..moveTo(0, h * 0.78)
-      ..quadraticBezierTo(w * 0.5, h * 0.70, w, h * 0.80)
+      ..moveTo(0, h * 0.80)
+      ..quadraticBezierTo(w * 0.5, h * 0.68, w, h * 0.80)
       ..lineTo(w, h)
       ..lineTo(0, h)
       ..close();
-    canvas.drawPath(ground, Paint()..color = const Color(0xFF1D5C3A));
-    final grass = Paint()
-      ..color = BarroColors.green.withValues(alpha: 0.7)
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    final rnd = math.Random(3);
-    for (var i = 0; i < 18; i++) {
-      final x = rnd.nextDouble() * w;
-      final y = h * 0.82 + rnd.nextDouble() * h * 0.14;
-      canvas.drawLine(Offset(x, y), Offset(x - 3, y - 8), grass);
-      canvas.drawLine(Offset(x, y), Offset(x + 3, y - 9), grass);
-    }
-
-    _drawProp(canvas, size);
-
-    // Poussin
-    final cx = w * 0.5;
-    final bob = t * 4;
-    final bodyR = h * 0.2;
-    final bodyC = Offset(cx, h * 0.62 - bob);
-    final headR = h * 0.135;
-    final headC = Offset(cx + bodyR * 0.35, bodyC.dy - bodyR * 0.95);
-
-    // Ombre
-    canvas.drawOval(Rect.fromCenter(center: Offset(cx, h * 0.83), width: bodyR * 2.2, height: h * 0.05),
-        Paint()..color = Colors.black.withValues(alpha: 0.25));
-    // Pattes
-    final leg = Paint()
-      ..color = _beak
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    for (final dx in [-bodyR * 0.3, bodyR * 0.25]) {
-      final top = Offset(cx + dx, bodyC.dy + bodyR * 0.85);
-      final foot = Offset(cx + dx, h * 0.82);
-      canvas.drawLine(top, foot, leg);
-      canvas.drawLine(foot, foot.translate(7, 0), leg);
-      canvas.drawLine(foot, foot.translate(-5, 2), leg);
-    }
-    // Corps et tête
-    canvas.drawCircle(bodyC, bodyR, Paint()..color = _yellow);
-    canvas.drawCircle(headC, headR, Paint()..color = _yellow);
-    // Aile qui bat un peu
-    canvas.save();
-    canvas.translate(bodyC.dx - bodyR * 0.15, bodyC.dy + bodyR * 0.05);
-    canvas.rotate(-0.25 - t * 0.2);
-    canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: bodyR * 1.0, height: bodyR * 0.6),
-        Paint()..color = _yellowDark);
-    canvas.restore();
-    // Bec
-    final beak = Path()
-      ..moveTo(headC.dx + headR * 0.85, headC.dy - headR * 0.1)
-      ..lineTo(headC.dx + headR * 1.45, headC.dy + headR * 0.1)
-      ..lineTo(headC.dx + headR * 0.85, headC.dy + headR * 0.3)
-      ..close();
-    canvas.drawPath(beak, Paint()..color = _beak);
-    // Œil
-    final eye = Offset(headC.dx + headR * 0.35, headC.dy - headR * 0.2);
-    canvas.drawCircle(eye, headR * 0.18, Paint()..color = BarroColors.ink);
-    canvas.drawCircle(eye.translate(-headR * 0.05, -headR * 0.06), headR * 0.06, Paint()..color = Colors.white);
-    // Joue
-    canvas.drawCircle(Offset(headC.dx + headR * 0.15, headC.dy + headR * 0.35), headR * 0.16,
-        Paint()..color = const Color(0xFFFF9F7A).withValues(alpha: 0.6));
-    // Petite houppette
-    final tuft = Paint()
-      ..color = _yellowDark
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    final top = Offset(headC.dx - headR * 0.1, headC.dy - headR * 0.95);
-    canvas.drawLine(top, top.translate(-4, -9), tuft);
-    canvas.drawLine(top, top.translate(4, -10), tuft);
+    canvas.drawPath(ground, Paint()..color = BarroColors.greenMid);
+    _prop(canvas, size, wave);
+    final s = h * 0.76 / 200;
+    final o = Offset(w * 0.58 - 120 * s, h * 0.86 - 190 * s);
+    _hen(canvas, o, s, wave, blink);
   }
 
-  void _drawProp(Canvas canvas, Size size) {
+  void _hen(Canvas canvas, Offset o, double s, double wave, bool blink) {
+    final bob = -wave * 2.5 * s;
+    Offset p(double x, double y) => Offset(o.dx + x * s, o.dy + y * s + bob);
+    Offset fixed(double x, double y) => Offset(o.dx + x * s, o.dy + y * s);
+
+    final leg = Paint()
+      ..color = BarroColors.orange
+      ..strokeWidth = 6 * s
+      ..strokeCap = StrokeCap.round;
+    for (final x in [100.0, 128.0]) {
+      canvas.drawLine(p(x, 176), fixed(x, 191), leg);
+    }
+
+    canvas.drawPath(_poly([p(62, 112), p(26, 58), p(48, 54), p(80, 98)]), Paint()..color = BarroColors.green);
+    canvas.drawCircle(p(115, 122), 58 * s, Paint()..color = Colors.white);
+    canvas.drawCircle(p(160, 70), 30 * s, Paint()..color = Colors.white);
+
+    // Aile, qui bouge un peu
+    final pivot = p(114, 120);
+    canvas.save();
+    canvas.translate(pivot.dx, pivot.dy);
+    canvas.rotate(math.sin(v * 4 * math.pi) * 0.06);
+    canvas.translate(-pivot.dx, -pivot.dy);
+    final a = p(78, 120), b = p(150, 120);
+    final wing = Path()
+      ..moveTo(a.dx, a.dy)
+      ..arcToPoint(b, radius: Radius.circular(36 * s), clockwise: false)
+      ..close();
+    canvas.drawPath(wing, Paint()..color = BarroColors.wing);
+    canvas.restore();
+
+    final red = Paint()..color = BarroColors.comb;
+    canvas.drawCircle(p(150, 38), 9 * s, red);
+    canvas.drawCircle(p(163, 33), 9 * s, red);
+    canvas.drawCircle(p(175, 40), 8 * s, red);
+    canvas.drawPath(_poly([p(188, 63), p(208, 71), p(188, 79)]), Paint()..color = BarroColors.orange);
+    canvas.drawCircle(p(186, 90), 7 * s, red);
+
+    if (blink) {
+      canvas.drawLine(
+        p(164, 62),
+        p(174, 62),
+        Paint()
+          ..color = BarroColors.ink
+          ..strokeWidth = 2.6 * s
+          ..strokeCap = StrokeCap.round,
+      );
+    } else {
+      canvas.drawCircle(p(169, 62), 5 * s, Paint()..color = BarroColors.ink);
+      canvas.drawCircle(p(170.6, 60.4), 1.6 * s, Paint()..color = Colors.white);
+    }
+  }
+
+  void _chick(Canvas canvas, Offset o, double cs, double wave) {
+    final bob = -math.max(0.0, wave) * 3 * cs;
+    Offset p(double x, double y) => Offset(o.dx + x * cs, o.dy + y * cs + bob);
+    canvas.drawCircle(p(22, 22), 18 * cs, Paint()..color = BarroColors.chick);
+    canvas.drawCircle(p(36, 6), 12 * cs, Paint()..color = BarroColors.chick);
+    canvas.drawPath(_poly([p(46, 4), p(56, 8), p(46, 12)]), Paint()..color = BarroColors.orange);
+    canvas.drawCircle(p(40, 3), 2.5 * cs, Paint()..color = BarroColors.ink);
+  }
+
+  void _prop(Canvas canvas, Size size, double wave) {
     final w = size.width, h = size.height;
     switch (prop) {
       case SceneProp.sun:
-        final c = Offset(w * 0.18, h * 0.24);
-        final r = h * 0.1;
-        final ray = Paint()
-          ..color = BarroColors.orange
-          ..strokeWidth = 3
-          ..strokeCap = StrokeCap.round;
-        for (var i = 0; i < 8; i++) {
-          final a = i * math.pi / 4 + t * 0.3;
-          canvas.drawLine(
-            c + Offset(math.cos(a), math.sin(a)) * (r * 1.35),
-            c + Offset(math.cos(a), math.sin(a)) * (r * 1.75),
-            ray,
-          );
-        }
-        canvas.drawCircle(c, r, Paint()..color = BarroColors.orange);
-        // Thermomètre
-        final tx = w * 0.82, ty = h * 0.3;
-        final tube = RRect.fromRectAndRadius(Rect.fromLTWH(tx - 6, ty, 12, h * 0.34), const Radius.circular(6));
-        canvas.drawRRect(tube, Paint()..color = Colors.white.withValues(alpha: 0.85));
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(Rect.fromLTWH(tx - 3, ty + h * 0.12, 6, h * 0.22), const Radius.circular(3)),
-          Paint()..color = const Color(0xFFFF6B6B),
-        );
-        canvas.drawCircle(Offset(tx, ty + h * 0.36), 10, Paint()..color = const Color(0xFFFF6B6B));
+        final cs = h / 228;
+        _chick(canvas, Offset(w * 0.1, h * 0.79 - 40 * cs), cs, wave);
         break;
       case SceneProp.water:
-        final c = Offset(w * 0.2, h * 0.46);
-        final s = h * 0.17;
+        final c = Offset(w * 0.18, h * 0.42 + wave * 3);
+        final d = h * 0.13;
         final drop = Path()
-          ..moveTo(c.dx, c.dy - s)
-          ..quadraticBezierTo(c.dx + s * 0.75, c.dy - s * 0.05, c.dx + s * 0.5, c.dy + s * 0.45)
-          ..arcToPoint(Offset(c.dx - s * 0.5, c.dy + s * 0.45), radius: Radius.circular(s * 0.55))
-          ..quadraticBezierTo(c.dx - s * 0.75, c.dy - s * 0.05, c.dx, c.dy - s)
+          ..moveTo(c.dx, c.dy - d)
+          ..quadraticBezierTo(c.dx + d * 0.75, c.dy - d * 0.05, c.dx + d * 0.5, c.dy + d * 0.45)
+          ..arcToPoint(Offset(c.dx - d * 0.5, c.dy + d * 0.45), radius: Radius.circular(d * 0.55))
+          ..quadraticBezierTo(c.dx - d * 0.75, c.dy - d * 0.05, c.dx, c.dy - d)
           ..close();
-        canvas.drawPath(drop, Paint()..color = BarroColors.blue);
-        canvas.drawCircle(c.translate(-s * 0.18, s * 0.1), s * 0.1, Paint()..color = Colors.white.withValues(alpha: 0.6));
-        // Graines
+        canvas.drawPath(drop, Paint()..color = const Color(0xFF60A5FA));
+        canvas.drawCircle(c.translate(-d * 0.18, d * 0.1), d * 0.1, Paint()..color = Colors.white.withValues(alpha: 0.7));
         final rnd = math.Random(11);
         for (var i = 0; i < 12; i++) {
           canvas.drawOval(
             Rect.fromCenter(
-              center: Offset(w * 0.7 + rnd.nextDouble() * w * 0.2, h * 0.8 + rnd.nextDouble() * h * 0.08),
-              width: 6,
+              center: Offset(w * 0.12 + rnd.nextDouble() * w * 0.24, h * 0.84 + rnd.nextDouble() * h * 0.08),
+              width: 7,
               height: 4,
             ),
-            Paint()..color = const Color(0xFFF2C14E),
+            Paint()..color = const Color(0xFFE0A21B),
           );
         }
         break;
       case SceneProp.coin:
         for (var i = 0; i < 3; i++) {
-          final c = Offset(w * 0.8, h * 0.72 - i * 9.0);
-          canvas.drawOval(Rect.fromCenter(center: c, width: 44, height: 16), Paint()..color = const Color(0xFFE0A21B));
-          canvas.drawOval(Rect.fromCenter(center: c.translate(0, -3), width: 44, height: 16),
-              Paint()..color = const Color(0xFFFFC94A));
+          final c = Offset(w * 0.16, h * 0.84 - i * 9.0);
+          canvas.drawOval(Rect.fromCenter(center: c, width: 46, height: 16), Paint()..color = const Color(0xFFE0A21B));
+          canvas.drawOval(
+              Rect.fromCenter(center: c.translate(0, -3), width: 46, height: 16), Paint()..color = const Color(0xFFFFC94A));
         }
-        // Croix de santé
-        final hc = Offset(w * 0.2, h * 0.32);
-        canvas.drawCircle(hc, h * 0.11, Paint()..color = BarroColors.green);
-        final arm = h * 0.06;
+        final hc = Offset(w * 0.16, h * 0.34);
+        final r = h * 0.1 * (1 + 0.04 * wave);
+        canvas.drawCircle(hc, r, Paint()..color = BarroColors.green);
+        final arm = r * 0.55;
         final cross = Paint()..color = Colors.white;
         canvas.drawRRect(
-            RRect.fromRectAndRadius(Rect.fromCenter(center: hc, width: arm * 0.8, height: arm * 2.2), const Radius.circular(3)),
+            RRect.fromRectAndRadius(Rect.fromCenter(center: hc, width: arm * 0.7, height: arm * 2), const Radius.circular(3)),
             cross);
         canvas.drawRRect(
-            RRect.fromRectAndRadius(Rect.fromCenter(center: hc, width: arm * 2.2, height: arm * 0.8), const Radius.circular(3)),
+            RRect.fromRectAndRadius(Rect.fromCenter(center: hc, width: arm * 2, height: arm * 0.7), const Radius.circular(3)),
             cross);
         break;
     }
   }
 
   @override
-  bool shouldRepaint(_ChickPainter old) => old.t != t || old.prop != prop || old.sky != sky;
+  bool shouldRepaint(_HenPainter old) => old.v != v || old.prop != prop || old.compact != compact;
+}
+
+/// Bouton « lecture » entouré d'une onde qui pulse.
+class PulsePlay extends StatefulWidget {
+  final Color color;
+  final Color iconColor;
+
+  const PulsePlay({super.key, this.color = Colors.white, this.iconColor = BarroColors.greenDeep});
+
+  @override
+  State<PulsePlay> createState() => _PulsePlayState();
+}
+
+class _PulsePlayState extends State<PulsePlay> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      _c.stop();
+    } else if (!_c.isAnimating) {
+      _c.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 112,
+      height: 112,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          final t = _c.value;
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 72 + 40 * t,
+                height: 72 + 40 * t,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.color.withValues(alpha: 0.28 * (1 - t)),
+                ),
+              ),
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color),
+                child: Icon(Icons.play_arrow_rounded, size: 40, color: widget.iconColor),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
 
 /// Pluie de confettis pour la récompense.
@@ -253,16 +308,23 @@ class Confetti extends StatefulWidget {
 
 class _ConfettiState extends State<Confetti> with SingleTickerProviderStateMixin {
   late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 2400));
   late final List<_Bit> _bits;
 
   @override
   void initState() {
     super.initState();
     final rnd = math.Random();
-    const colors = [BarroColors.green, BarroColors.blue, BarroColors.orange, BarroColors.violet, BarroColors.pink];
+    const colors = [
+      BarroColors.green,
+      BarroColors.orange,
+      BarroColors.blue,
+      BarroColors.violet,
+      BarroColors.comb,
+      Color(0xFFFACC15),
+    ];
     _bits = List.generate(
-      60,
+      70,
       (i) => _Bit(
         x: rnd.nextDouble(),
         drift: (rnd.nextDouble() - 0.5) * 0.4,

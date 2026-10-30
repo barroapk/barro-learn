@@ -26,14 +26,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: BarroColors.surface,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: Text('Recommencer à zéro ?', style: display(20)),
         content: Text('Tes leçons terminées, tes XP et ta série seront effacés. Tes réglages restent.',
             style: body(14, color: BarroColors.muted)),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Annuler')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: BarroColors.red, foregroundColor: BarroColors.ink),
+            style: FilledButton.styleFrom(backgroundColor: BarroColors.red, foregroundColor: Colors.white),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Tout effacer'),
           ),
@@ -56,13 +57,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           TabHeader(
             onBack: () => Navigator.of(context).pop(),
-            title: Text('Paramètres', style: display(24)),
+            title: Text('Paramètres', style: display(22)),
           ),
           Expanded(
             child: ListenableBuilder(
               listenable: state,
               builder: (context, _) => ListView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
                 children: [
                   const _Group('Profil'),
                   _Card(
@@ -75,16 +76,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         textCapitalization: TextCapitalization.words,
                         decoration: InputDecoration(
                           hintText: 'Ex. Aminata',
-                          hintStyle: body(15, color: BarroColors.muted),
+                          hintStyle: body(15, color: BarroColors.faint),
                           filled: true,
-                          fillColor: BarroColors.bg,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          fillColor: BarroColors.soft,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: BarroColors.green, width: 2),
+                          ),
                         ),
-                        onSubmitted: state.setName,
                         onChanged: state.setName,
                       ),
                       const SizedBox(height: 6),
-                      Text('Il s\'affiche sur l\'accueil et sur ta page de progrès.', style: body(12, color: BarroColors.muted)),
+                      Text('Il s\'affiche sur l\'accueil et sur ta page de progrès.',
+                          style: body(12, color: BarroColors.muted)),
                     ],
                   ),
                   const _Group('Apparence'),
@@ -92,20 +97,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Text('Fond d\'écran', style: body(14, weight: FontWeight.w700)),
                       const SizedBox(height: 10),
-                      GridView.count(
-                        crossAxisCount: 4,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        childAspectRatio: 0.62,
+                      Row(
                         children: [
-                          for (final style in BackgroundStyle.values)
-                            _BackgroundChoice(
-                              style: style,
-                              selected: state.background == style,
-                              onTap: () => state.setBackground(style),
+                          for (final style in BackgroundStyle.values) ...[
+                            Expanded(
+                              child: _BackgroundChoice(
+                                style: style,
+                                selected: state.background == style,
+                                onTap: () => state.setBackground(style),
+                              ),
                             ),
+                            if (style != BackgroundStyle.values.last) const SizedBox(width: 10),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 18),
@@ -134,15 +137,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         value: state.dataSaver,
                         onChanged: state.setDataSaver,
                         title: Text('Économiser les données', style: body(15, weight: FontWeight.w700)),
-                        subtitle: Text('Vidéos en qualité réduite. Actif avec le lecteur intégré (phase 2).',
+                        subtitle: Text('Vidéos en qualité réduite, avec le lecteur intégré (bientôt).',
                             style: body(12, color: BarroColors.muted)),
                       ),
-                      const Divider(height: 1, color: BarroColors.border),
+                      const Divider(height: 1, color: BarroColors.line),
                       SwitchListTile(
                         value: state.dailyReminder,
                         onChanged: state.setDailyReminder,
                         title: Text('Rappel quotidien', style: body(15, weight: FontWeight.w700)),
-                        subtitle: Text('Une notification pour garder ta série. Arrive avec la phase 4.',
+                        subtitle: Text('Une notification pour garder ta série (bientôt).',
                             style: body(12, color: BarroColors.muted)),
                       ),
                     ],
@@ -152,9 +155,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     padding: EdgeInsets.zero,
                     children: [
                       _LanguageRow(label: 'Français', selected: true, onTap: () {}),
-                      const Divider(height: 1, color: BarroColors.border),
+                      const Divider(height: 1, color: BarroColors.line),
                       _LanguageRow(label: 'Mooré', selected: false, onTap: () => showSoon(context, 'Le mooré')),
-                      const Divider(height: 1, color: BarroColors.border),
+                      const Divider(height: 1, color: BarroColors.line),
                       _LanguageRow(label: 'Dioula', selected: false, onTap: () => showSoon(context, 'Le dioula')),
                     ],
                   ),
@@ -164,7 +167,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       ListTile(
                         leading: const Icon(Icons.restart_alt, color: BarroColors.red),
-                        title: Text('Recommencer à zéro', style: body(15, color: BarroColors.red, weight: FontWeight.w700)),
+                        title: Text('Recommencer à zéro',
+                            style: body(15, color: BarroColors.red, weight: FontWeight.w700)),
                         subtitle: Text('Efface leçons terminées, XP et série.', style: body(12, color: BarroColors.muted)),
                         onTap: _confirmReset,
                       ),
@@ -173,12 +177,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const _Group('À propos'),
                   _Card(
                     children: [
-                      Text('BARRO · version 0.2', style: body(15, weight: FontWeight.w800)),
+                      Text('BARRO · version 0.3', style: body(15, weight: FontWeight.w800)),
                       const SizedBox(height: 4),
                       Text('Apprendre, comprendre, créer. Une application de KOUNADIA SERVICE, Burkina Faso.',
                           style: body(13, color: BarroColors.muted)),
                       const SizedBox(height: 8),
-                      Text('Les chiffres des leçons viennent de sources vérifiées. Pour les vaccins et les soins, demande toujours conseil à un vétérinaire.',
+                      Text(
+                          'Les chiffres des leçons viennent de sources vérifiées. Pour les vaccins et les soins, demande toujours conseil à un vétérinaire.',
                           style: body(12, color: BarroColors.muted)),
                     ],
                   ),
@@ -200,8 +205,8 @@ class _Group extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
-      child: Text(text.toUpperCase(), style: body(12, color: BarroColors.muted, weight: FontWeight.w800)),
+      padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+      child: Text(text.toUpperCase(), style: eyebrow(color: BarroColors.muted)),
     );
   }
 }
@@ -217,9 +222,9 @@ class _Card extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: BarroColors.surface.withValues(alpha: 0.95),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: BarroColors.border),
+        border: Border.all(color: BarroColors.line),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
@@ -236,34 +241,27 @@ class _BackgroundChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: 'Fond ${style.label}',
-      child: GestureDetector(
-        onTap: onTap,
-        child: Column(
-          children: [
-            Expanded(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: selected ? BarroColors.green : BarroColors.border, width: selected ? 3 : 1),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(11),
-                  child: CustomPaint(painter: BackgroundPainter(style), size: Size.infinite),
-                ),
-              ),
+    return Tap(
+      onTap: onTap,
+      semanticLabel: 'Fond ${style.label}',
+      child: Column(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: 120,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: selected ? BarroColors.green : BarroColors.line, width: selected ? 3 : 1),
             ),
-            const SizedBox(height: 6),
-            Text(style.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: body(11, color: selected ? BarroColors.green : BarroColors.muted, weight: FontWeight.w700)),
-          ],
-        ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(11),
+              child: CustomPaint(painter: BackgroundPainter(style), size: Size.infinite),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(style.label,
+              style: body(12, color: selected ? BarroColors.greenText : BarroColors.muted, weight: FontWeight.w700)),
+        ],
       ),
     );
   }
@@ -282,7 +280,7 @@ class _LanguageRow extends StatelessWidget {
       title: Text(label, style: body(15, weight: FontWeight.w600)),
       trailing: selected
           ? const Icon(Icons.check_circle, color: BarroColors.green)
-          : Text('Bientôt', style: body(12, color: BarroColors.muted, weight: FontWeight.w700)),
+          : Text('Bientôt', style: body(12, color: BarroColors.faint, weight: FontWeight.w700)),
       onTap: onTap,
     );
   }

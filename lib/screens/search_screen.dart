@@ -72,10 +72,11 @@ class _SearchScreenState extends State<SearchScreen> {
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 hintText: 'Métier, leçon, mot-clé…',
-                hintStyle: body(16, color: BarroColors.muted),
+                hintStyle: body(16, color: BarroColors.faint),
                 isDense: true,
                 filled: true,
-                fillColor: BarroColors.surface,
+                fillColor: BarroColors.soft,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 prefixIcon: const Icon(Icons.search, color: BarroColors.muted),
                 suffixIcon: _query.isEmpty
                     ? null
@@ -84,14 +85,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         icon: const Icon(Icons.close, color: BarroColors.muted),
                         onPressed: () => _setQuery(''),
                       ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: BarroColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: BarroColors.border),
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: const BorderSide(color: BarroColors.green, width: 2),
@@ -102,21 +96,24 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
               children: [
                 if (q.isEmpty) ...[
-                  Text('Recherches fréquentes', style: body(13, color: BarroColors.muted, weight: FontWeight.w700)),
-                  const SizedBox(height: 10),
+                  Text('RECHERCHES FRÉQUENTES', style: eyebrow(color: BarroColors.muted)),
+                  const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
                       for (final s in _suggestions)
-                        ActionChip(
-                          label: Text(s, style: body(14, weight: FontWeight.w600)),
-                          backgroundColor: BarroColors.surface,
-                          side: const BorderSide(color: BarroColors.border),
-                          onPressed: () => _setQuery(s),
+                        Tap(
+                          onTap: () => _setQuery(s),
+                          semanticLabel: 'Chercher $s',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(color: BarroColors.soft, borderRadius: BorderRadius.circular(99)),
+                            child: Text(s, style: body(14, weight: FontWeight.w700)),
+                          ),
                         ),
                     ],
                   ),
@@ -128,13 +125,13 @@ class _SearchScreenState extends State<SearchScreen> {
                         style: body(15, color: BarroColors.muted)),
                   ),
                 if (metierHits.isNotEmpty) ...[
-                  Text('Métiers', style: display(18, weight: FontWeight.w600)),
+                  Text('Métiers', style: display(17)),
                   const SizedBox(height: 10),
                   for (final hit in metierHits) MetierTile(metier: hit.$1, category: hit.$2),
                   const SizedBox(height: 16),
                 ],
                 if (lessonHits.isNotEmpty) ...[
-                  Text('Leçons', style: display(18, weight: FontWeight.w600)),
+                  Text('Leçons', style: display(17)),
                   const SizedBox(height: 10),
                   for (final l in lessonHits) _LessonHit(lesson: l),
                 ],
@@ -156,36 +153,48 @@ class _LessonHit extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = AppState.instance;
     final unlocked = state.isUnlocked(lesson.number);
+    final done = state.isCompleted(lesson.number);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: BarroColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        child: ListTile(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          leading: CircleAvatar(
-            backgroundColor: unlocked ? BarroColors.blue : BarroColors.border,
-            child: Icon(unlocked ? Icons.play_arrow_rounded : Icons.lock_outline,
-                color: unlocked ? BarroColors.ink : BarroColors.muted),
+      child: Tap(
+        semanticLabel: lesson.title,
+        onTap: () {
+          if (unlocked) {
+            Navigator.of(context).push(barroRoute(LessonScreen(lesson: lesson)));
+          } else {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(const SnackBar(content: Text('Cette leçon s\'ouvre quand tu as fini la précédente.')));
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: BarroColors.line),
           ),
-          title: Text(lesson.title, style: body(15, weight: FontWeight.w700)),
-          subtitle: Text('Leçon ${lesson.number} · Poulets de chair', style: body(12, color: BarroColors.muted)),
-          onTap: () {
-            if (unlocked) {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => LessonScreen(lesson: lesson)));
-            } else {
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(const SnackBar(content: Text('Cette leçon s\'ouvre quand tu as fini la précédente.')));
-            }
-          },
+          child: Row(
+            children: [
+              SoftIcon(
+                icon: done ? Icons.check : (unlocked ? Icons.play_arrow_rounded : Icons.lock_outline),
+                tint: unlocked ? BarroColors.greenSoft : BarroColors.soft,
+                color: unlocked ? BarroColors.greenText : BarroColors.faint,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(lesson.title, style: body(15, weight: FontWeight.w700, height: 1.25)),
+                    Text('Leçon ${lesson.number} · Poulets de chair', style: body(12, color: BarroColors.muted)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-}
-
-/// Raccourci utilisé par l'accueil pour ouvrir une catégorie.
-void openMetiers(BuildContext context, {int? category}) {
-  Navigator.of(context).push(MaterialPageRoute(builder: (_) => MetiersScreen(initialCategory: category)));
 }

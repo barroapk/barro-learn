@@ -17,7 +17,7 @@ class MetiersScreen extends StatefulWidget {
 }
 
 class _MetiersScreenState extends State<MetiersScreen> {
-  int? _selected; // null = toutes les catégories
+  int? _selected;
 
   @override
   void initState() {
@@ -38,17 +38,18 @@ class _MetiersScreenState extends State<MetiersScreen> {
             onBack: () => Navigator.of(context).pop(),
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Métiers', style: display(24)),
+                Text('Métiers', style: display(22)),
                 Text('$metierCount métiers · ${metierCategories.length} catégories',
                     style: body(12, color: BarroColors.muted)),
               ],
             ),
             actions: [
-              SquareIconButton(
+              RoundIconButton(
                 icon: Icons.search,
                 tooltip: 'Rechercher un métier',
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
+                onPressed: () => Navigator.of(context).push(barroRoute(const SearchScreen())),
               ),
             ],
             bottom: SizedBox(
@@ -56,12 +57,11 @@ class _MetiersScreenState extends State<MetiersScreen> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  _FilterChip(label: 'Tous', selected: _selected == null, color: BarroColors.text, onTap: () => setState(() => _selected = null)),
+                  _FilterChip(label: 'Tous', selected: _selected == null, onTap: () => setState(() => _selected = null)),
                   for (var i = 0; i < metierCategories.length; i++)
                     _FilterChip(
                       label: metierCategories[i].title,
                       selected: _selected == i,
-                      color: metierCategories[i].color,
                       onTap: () => setState(() => _selected = i),
                     ),
                 ],
@@ -69,14 +69,18 @@ class _MetiersScreenState extends State<MetiersScreen> {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-              children: [
-                for (final i in shown) ...[
-                  FadeSlideIn(index: shown.indexOf(i), child: _CategorySection(category: metierCategories[i])),
-                  const SizedBox(height: 24),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: ListView(
+                key: ValueKey(_selected),
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+                children: [
+                  for (var k = 0; k < shown.length; k++) ...[
+                    FadeSlideIn(index: k, child: _CategorySection(category: metierCategories[shown[k]])),
+                    const SizedBox(height: 24),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],
@@ -88,32 +92,28 @@ class _MetiersScreenState extends State<MetiersScreen> {
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
-  final Color color;
   final VoidCallback onTap;
 
-  const _FilterChip({required this.label, required this.selected, required this.color, required this.onTap});
+  const _FilterChip({required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: Material(
-        color: selected ? color : BarroColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(99),
-          side: BorderSide(color: selected ? color : BarroColors.border),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(99),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Center(
-              child: Text(
-                label,
-                style: body(13, color: selected ? BarroColors.ink : BarroColors.text, weight: FontWeight.w700),
-              ),
-            ),
+      child: Tap(
+        onTap: onTap,
+        semanticLabel: label,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? BarroColors.greenDeep : BarroColors.soft,
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Text(
+            label,
+            style: body(13, color: selected ? Colors.white : BarroColors.ink, weight: FontWeight.w700, height: 1.2),
           ),
         ),
       ),
@@ -133,18 +133,13 @@ class _CategorySection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(color: category.color, borderRadius: BorderRadius.circular(12)),
-              child: Icon(category.icon, color: BarroColors.ink, size: 22),
-            ),
+            SoftIcon(icon: category.icon, tint: category.tint, color: category.color),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(category.title, style: display(18, weight: FontWeight.w600)),
+                  Text(category.title, style: display(17)),
                   Text('${category.subtitle} · ${category.metiers.length} métiers',
                       style: body(12, color: BarroColors.muted)),
                 ],
@@ -170,53 +165,48 @@ class MetierTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: metier.available ? category.tint : BarroColors.surface.withValues(alpha: 0.85),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: metier.available ? category.color : BarroColors.border, width: metier.available ? 2 : 1),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            if (metier.available) {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => BarroPage(child: CourseScreen(onBack: () => Navigator.of(context).pop())),
-              ));
-            } else {
-              showSoon(context, 'Le parcours « ${metier.title} »');
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: metier.available ? category.color : BarroColors.border,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(metier.icon, color: metier.available ? BarroColors.ink : BarroColors.muted),
+      child: Tap(
+        semanticLabel: metier.title,
+        onTap: () {
+          if (metier.available) {
+            Navigator.of(context).push(barroRoute(
+              BarroPage(child: CourseScreen(onBack: () => Navigator.of(context).pop())),
+            ));
+          } else {
+            showSoon(context, 'Le parcours « ${metier.title} »');
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: metier.available ? category.tint : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: metier.available ? category.tint : BarroColors.line),
+          ),
+          child: Row(
+            children: [
+              SoftIcon(
+                icon: metier.icon,
+                tint: metier.available ? Colors.white : BarroColors.soft,
+                color: metier.available ? category.color : BarroColors.muted,
+                size: 44,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(metier.title, style: body(15, weight: FontWeight.w700, height: 1.25)),
+                    const SizedBox(height: 2),
+                    Text(metier.subtitle, style: body(12, color: BarroColors.muted)),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(metier.title, style: body(15, weight: FontWeight.w700, height: 1.25)),
-                      const SizedBox(height: 2),
-                      Text(metier.subtitle, style: body(12, color: BarroColors.muted)),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                metier.available
-                    ? Pill(label: 'Ouvert', background: category.color, foreground: BarroColors.ink)
-                    : Text('Bientôt', style: body(12, color: BarroColors.muted, weight: FontWeight.w700)),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              metier.available
+                  ? const Pill(label: 'Ouvert', background: BarroColors.greenDeep, foreground: Colors.white)
+                  : Text('Bientôt', style: body(12, color: BarroColors.faint, weight: FontWeight.w700)),
+            ],
           ),
         ),
       ),
