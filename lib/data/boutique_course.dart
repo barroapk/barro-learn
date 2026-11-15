@@ -1,0 +1,290 @@
+import 'course.dart';
+
+/// Parcours : Gérer une petite boutique. Thèmes de référence : programme GERME/SIYB du BIT. Les chiffres sont des exemples inventés.
+const boutiqueCourse = Course(
+  title: "Gérer une petite boutique",
+  universe: "Métiers",
+  level: "Débutant",
+  summary: "15 leçons · 3 exercices pratiques · 1 examen final",
+  modules: [
+    CourseModule(
+      number: 1,
+      title: "Ouvrir sa boutique",
+      goal: "Choisir quoi vendre, où s'installer et de combien d'argent tu as besoin.",
+      exercise: "Mon plan de départ",
+      lessons: [
+        Lesson(
+          number: 1,
+          title: "Choisir ce que tu vends",
+          minutes: 5,
+          hook: "Une boutique qui vend ce dont les gens ont besoin chaque jour ne reste jamais vide. Que achètent tes voisins chaque semaine ?",
+          essentials: [
+            "Commence par les produits de tous les jours : savon, sucre, huile, riz, recharges.",
+            "Demande à 10 personnes de ton quartier ce qu'elles achètent le plus souvent.",
+            "Mieux vaut peu de produits qui partent vite que beaucoup de produits qui dorment.",
+          ],
+          task: "Interroge 10 voisins et note les 5 produits cités le plus souvent.",
+          quiz: [
+            QuizQuestion("Quels produits choisir pour commencer ?", ["Ceux dont les gens ont besoin chaque jour", "Les plus rares", "Ceux que tu aimes seulement"], 0),
+            QuizQuestion("Comment connaître les besoins du quartier ?", ["En demandant aux voisins", "En devinant", "En copiant une ville lointaine"], 0),
+            QuizQuestion("Mieux vaut…", ["Peu de produits qui partent vite", "Beaucoup de produits qui dorment", "Aucun stock"], 0),
+          ],
+        ),
+        Lesson(
+          number: 2,
+          title: "Choisir l'emplacement",
+          minutes: 5,
+          hook: "Deux boutiques identiques, l'une pleine de clients, l'autre vide : la différence, c'est souvent l'endroit.",
+          essentials: [
+            "Cherche un endroit où beaucoup de gens passent : carrefour, marché, école, arrêt.",
+            "Regarde les autres boutiques proches : trop de concurrence partage les clients.",
+            "Vérifie le loyer et la sécurité du lieu avant de t'engager.",
+          ],
+          task: "Compte combien de personnes passent devant ton emplacement pendant 30 minutes.",
+          quiz: [
+            QuizQuestion("Un bon emplacement, c'est…", ["Un endroit où beaucoup de gens passent", "Un coin isolé", "Le plus bas loyer sans regarder"], 0),
+            QuizQuestion("Avant de t'engager, tu regardes…", ["Le loyer et la sécurité", "La couleur du mur seulement", "Rien"], 0),
+            QuizQuestion("Beaucoup de boutiques identiques au même endroit…", ["Se partagent les clients", "Font tous gagner plus", "Sont obligatoires"], 0),
+          ],
+        ),
+        Lesson(
+          number: 3,
+          title: "Calculer le capital de départ",
+          minutes: 6,
+          hook: "Beaucoup de boutiques ferment parce que l'argent manque dès le deuxième mois. Combien te faut-il vraiment ?",
+          essentials: [
+            "Capital de départ = achat du stock + aménagement + loyer des premiers mois + une petite réserve.",
+            "Garde toujours une réserve pour les imprévus : une panne, un retard de fournisseur.",
+            "Exemple inventé : 100 000 FCFA de stock + 20 000 d'aménagement + 30 000 de loyer + 20 000 de réserve = 170 000 FCFA.",
+          ],
+          task: "Liste tout ce que tu dois acheter ou payer pour ouvrir et additionne.",
+          quiz: [
+            QuizQuestion("Le capital de départ comprend…", ["Stock, aménagement, loyer et réserve", "Le stock seulement", "Seulement le loyer"], 0),
+            QuizQuestion("Pourquoi une réserve ?", ["Pour les imprévus", "Pour acheter des cadeaux", "Pour rien"], 0),
+            QuizQuestion("Exemple : 100 000 + 20 000 + 30 000 + 20 000 = ?", ["170 000 FCFA", "150 000 FCFA", "120 000 FCFA"], 0),
+          ],
+        ),
+        Lesson(
+          number: 4,
+          title: "Les papiers et les autorisations",
+          minutes: 5,
+          hook: "Ouvrir sans se renseigner peut te coûter une amende ou la fermeture. Quoi vérifier avant ?",
+          essentials: [
+            "Les règles changent selon le pays et la commune : renseigne-toi à la mairie ou auprès des services du commerce.",
+            "Demande si une déclaration, une patente ou une taxe est obligatoire pour ton type de boutique.",
+            "Garde une copie de tous les papiers et reçus dans un endroit sec.",
+          ],
+          task: "Va à la mairie ou appelle les services du commerce et note ce qu'on te demande.",
+          quiz: [
+            QuizQuestion("Où te renseigner sur les autorisations ?", ["À la mairie ou aux services du commerce", "Au hasard", "Nulle part"], 0),
+            QuizQuestion("Les règles sont…", ["Les mêmes partout", "Différentes selon le pays et la commune", "Inventées par les clients"], 1),
+            QuizQuestion("Que faire des papiers ?", ["Les garder en copie, au sec", "Les jeter", "Les prêter"], 0),
+          ],
+        ),
+        Lesson(
+          number: 5,
+          title: "Aménager la boutique",
+          minutes: 5,
+          hook: "Un client qui ne voit pas un produit ne l'achète pas. Comment ranger pour vendre plus ?",
+          essentials: [
+            "Mets les produits les plus demandés bien visibles et à portée de main.",
+            "Range par famille : savons ensemble, boissons ensemble, produits secs ensemble.",
+            "Garde l'endroit propre et à l'abri du soleil, de l'eau et des rats.",
+          ],
+          task: "Dessine le plan de ta boutique avec la place de chaque famille de produits.",
+          quiz: [
+            QuizQuestion("Où mettre les produits les plus demandés ?", ["Bien visibles et faciles à prendre", "Cachés au fond", "Dans une caisse fermée"], 0),
+            QuizQuestion("Comment ranger ?", ["Par famille de produits", "Au hasard", "Par couleur d'emballage seulement"], 0),
+            QuizQuestion("Pourquoi garder la boutique propre ?", ["Pour protéger les produits et rassurer les clients", "Pour rien", "Pour payer moins"], 0),
+          ],
+        ),
+      ],
+    ),
+    CourseModule(
+      number: 2,
+      title: "Acheter, fixer ses prix, tenir ses comptes",
+      goal: "Acheter au bon prix, fixer une marge et noter chaque entrée d'argent.",
+      exercise: "Mon cahier de caisse",
+      lessons: [
+        Lesson(
+          number: 6,
+          title: "Acheter au bon prix",
+          minutes: 5,
+          hook: "Chaque pièce économisée à l'achat est gagnée à la vente. Comment acheter moins cher ?",
+          essentials: [
+            "Compare les prix d'au moins 3 fournisseurs avant d'acheter.",
+            "Acheter en plus grande quantité coûte souvent moins cher à l'unité, mais ne dépasse pas ce que tu peux vendre.",
+            "Vérifie toujours la date limite des produits à l'achat.",
+          ],
+          task: "Demande le prix d'un même produit chez 3 fournisseurs et compare.",
+          quiz: [
+            QuizQuestion("Avant d'acheter, tu…", ["Compares 3 fournisseurs", "Prends le premier venu", "Achètes le plus cher"], 0),
+            QuizQuestion("Acheter en grande quantité…", ["N'est bien que si tu peux vendre", "Est toujours bien", "Est toujours mal"], 0),
+            QuizQuestion("À l'achat, que vérifier ?", ["La date limite", "Seulement la couleur", "Rien"], 0),
+          ],
+        ),
+        Lesson(
+          number: 7,
+          title: "Fixer ses prix et sa marge",
+          minutes: 6,
+          hook: "Si tu vends sans calculer, tu peux perdre de l'argent sans le savoir. Comment fixer ton prix ?",
+          essentials: [
+            "Marge = prix de vente − prix d'achat.",
+            "Ne vends jamais en dessous du prix d'achat, sauf pour écouler un produit qui va se périmer.",
+            "Exemple inventé : achat à 400 FCFA, vente à 500 FCFA, marge de 100 FCFA par article.",
+          ],
+          task: "Calcule la marge de 5 de tes produits.",
+          quiz: [
+            QuizQuestion("Marge = ?", ["Prix de vente − prix d'achat", "Prix d'achat − prix de vente", "Prix d'achat + prix de vente"], 0),
+            QuizQuestion("Achat 400 FCFA, vente 500 FCFA. Marge ?", ["100 FCFA", "900 FCFA", "400 FCFA"], 0),
+            QuizQuestion("Vendre sous le prix d'achat est…", ["À éviter, sauf produit qui va se périmer", "Toujours bien", "Obligatoire"], 0),
+          ],
+        ),
+        Lesson(
+          number: 8,
+          title: "Gérer son stock",
+          minutes: 6,
+          hook: "Un stock qui dort, c'est de l'argent bloqué. Un stock vide, ce sont des clients perdus. Comment trouver l'équilibre ?",
+          essentials: [
+            "Fais l'inventaire : compte tes produits à chaque fin de semaine.",
+            "Repère les produits qui partent vite et ceux qui restent : rachète les premiers, évite les seconds.",
+            "Place les produits les plus anciens devant, pour qu'ils partent en premier.",
+          ],
+          task: "Fais l'inventaire de ton stock et note les 3 produits qui partent le plus vite.",
+          quiz: [
+            QuizQuestion("Un stock qui dort, c'est…", ["De l'argent bloqué", "Un bénéfice", "Une économie"], 0),
+            QuizQuestion("Quels produits racheter en priorité ?", ["Ceux qui partent vite", "Ceux qui restent", "Aucun"], 0),
+            QuizQuestion("Où placer les produits les plus anciens ?", ["Devant, pour qu'ils partent d'abord", "Au fond", "Dehors"], 0),
+          ],
+        ),
+        Lesson(
+          number: 9,
+          title: "Le cahier de caisse",
+          minutes: 6,
+          hook: "Sans cahier, impossible de savoir si tu gagnes ou si tu perds. Comment noter simplement ?",
+          essentials: [
+            "Chaque jour, écris toutes les entrées (ventes) et toutes les sorties (achats, dépenses).",
+            "Solde = entrées − sorties. Compare avec l'argent réellement en caisse.",
+            "Si les deux ne correspondent pas, cherche l'erreur le jour même.",
+          ],
+          task: "Tiens ton cahier de caisse pendant 7 jours sans en sauter un.",
+          quiz: [
+            QuizQuestion("Que noter chaque jour ?", ["Les entrées et les sorties", "Seulement les ventes", "Rien"], 0),
+            QuizQuestion("Solde = ?", ["Entrées − sorties", "Sorties − entrées", "Entrées + sorties"], 0),
+            QuizQuestion("Si le solde ne correspond pas à la caisse…", ["Chercher l'erreur le jour même", "Ignorer", "Jeter le cahier"], 0),
+          ],
+        ),
+        Lesson(
+          number: 10,
+          title: "Vendre à crédit : attention",
+          minutes: 5,
+          hook: "Prêter à un ami semble gentil, mais beaucoup de boutiques tombent à cause des dettes non payées.",
+          essentials: [
+            "Le crédit est un risque : l'argent que tu prêtes ne sert plus à racheter du stock.",
+            "Si tu en donnes, fixe une limite, une date de paiement et note le nom du client dans un cahier à part.",
+            "Ne redonne pas de crédit à quelqu'un qui n'a pas payé le précédent.",
+          ],
+          task: "Écris tes règles de crédit en 3 phrases : montant maximum, délai, que faire si ça ne paie pas.",
+          quiz: [
+            QuizQuestion("Le crédit aux clients est…", ["Un risque pour ta boutique", "Toujours un bénéfice", "Interdit par la loi partout"], 0),
+            QuizQuestion("Si tu donnes du crédit, tu…", ["Notes le nom, le montant et la date", "Ne notes rien", "Oublies"], 0),
+            QuizQuestion("Quelqu'un n'a pas payé. Que faire ?", ["Ne pas redonner de crédit", "Doubler le crédit", "Lui offrir des produits"], 0),
+          ],
+        ),
+      ],
+    ),
+    CourseModule(
+      number: 3,
+      title: "Faire grandir la boutique",
+      goal: "Calculer son vrai bénéfice, fidéliser les clients et se protéger des pertes.",
+      exercise: "Mon bilan du mois",
+      lessons: [
+        Lesson(
+          number: 11,
+          title: "Séparer l'argent de la boutique et de la maison",
+          minutes: 5,
+          hook: "C'est l'erreur la plus fréquente : prendre dans la caisse pour la maison sans compter.",
+          essentials: [
+            "L'argent de la boutique n'est pas ton argent personnel.",
+            "Fixe-toi un « salaire » : une somme que tu prends chaque semaine ou chaque mois, et note-la dans le cahier.",
+            "Le reste du bénéfice sert à racheter du stock et à faire grandir la boutique.",
+          ],
+          task: "Décide du montant de ton « salaire » mensuel et note-le.",
+          quiz: [
+            QuizQuestion("L'argent de la caisse est…", ["Celui de la boutique", "Ton argent de poche", "Celui des clients"], 0),
+            QuizQuestion("Comment te payer ?", ["Un « salaire » fixé et noté", "Prendre sans compter", "Ne jamais te payer"], 0),
+            QuizQuestion("Le reste du bénéfice sert à…", ["Faire grandir la boutique", "Disparaître", "Acheter n'importe quoi"], 0),
+          ],
+        ),
+        Lesson(
+          number: 12,
+          title: "Accueillir et fidéliser",
+          minutes: 5,
+          hook: "Un client content en amène deux autres. Comment le faire revenir ?",
+          essentials: [
+            "Salue chaque client, souris, écoute ce qu'il cherche.",
+            "Si un produit manque, note-le : un client qui le redemande trois fois, il faut le commander.",
+            "Rends la monnaie juste et vite : la confiance fait revenir.",
+          ],
+          task: "Pendant une semaine, note les produits demandés que tu n'avais pas.",
+          quiz: [
+            QuizQuestion("Un client content…", ["En amène d'autres", "Ne revient jamais", "Ne compte pas"], 0),
+            QuizQuestion("Un produit manque et on le redemande souvent. Que faire ?", ["Le commander", "L'ignorer", "Fermer la boutique"], 0),
+            QuizQuestion("Rendre la monnaie…", ["Juste et vite", "En retard", "À peu près"], 0),
+          ],
+        ),
+        Lesson(
+          number: 13,
+          title: "Calculer son bénéfice",
+          minutes: 6,
+          hook: "Les ventes ne sont pas le bénéfice. Combien te reste-t-il vraiment à la fin du mois ?",
+          essentials: [
+            "Bénéfice = ventes − coût d'achat des produits vendus − frais (loyer, transport, électricité).",
+            "Un gros chiffre de ventes ne veut pas dire un gros bénéfice si les frais sont élevés.",
+            "Exemple inventé : ventes 300 000, achats 220 000, frais 40 000, bénéfice 40 000 FCFA.",
+          ],
+          task: "Calcule ton bénéfice du dernier mois avec ton cahier de caisse.",
+          quiz: [
+            QuizQuestion("Bénéfice = ?", ["Ventes − achats − frais", "Ventes + achats", "Ventes seulement"], 0),
+            QuizQuestion("Ventes 300 000, achats 220 000, frais 40 000. Bénéfice ?", ["40 000 FCFA", "80 000 FCFA", "260 000 FCFA"], 0),
+            QuizQuestion("Beaucoup de ventes signifient…", ["Pas forcément un gros bénéfice", "Toujours un gros bénéfice", "Aucun frais"], 0),
+          ],
+        ),
+        Lesson(
+          number: 14,
+          title: "Épargner et réinvestir",
+          minutes: 5,
+          hook: "Une boutique qui ne grandit pas risque de reculer. Que faire du bénéfice ?",
+          essentials: [
+            "Mets de côté une part fixe du bénéfice chaque mois, même petite.",
+            "Réinvestis dans les produits qui se vendent le mieux, pas dans ceux que tu aimes.",
+            "Garde une réserve pour les mois creux.",
+          ],
+          task: "Fixe la part du bénéfice que tu mets de côté chaque mois.",
+          quiz: [
+            QuizQuestion("Épargner une part du bénéfice…", ["Protège ta boutique", "Est une perte de temps", "N'est jamais utile"], 0),
+            QuizQuestion("Où réinvestir ?", ["Dans ce qui se vend le mieux", "Dans ce que tu aimes seulement", "Nulle part"], 0),
+            QuizQuestion("Pourquoi une réserve ?", ["Pour les mois creux", "Pour acheter des bijoux", "Pour rien"], 0),
+          ],
+        ),
+        Lesson(
+          number: 15,
+          title: "Se protéger des pertes",
+          minutes: 6,
+          hook: "Vols, produits périmés, impayés : de petites pertes répétées peuvent effacer ton bénéfice.",
+          essentials: [
+            "Compte ton stock régulièrement : un manque inexpliqué est un signal.",
+            "Vérifie les dates limites et vends d'abord les produits qui approchent de la fin.",
+            "Ferme bien la boutique et garde peu d'argent en caisse le soir.",
+          ],
+          task: "Fais une liste des 3 plus gros risques de perte de ta boutique et une action contre chacun.",
+          quiz: [
+            QuizQuestion("Un manque inexpliqué dans le stock est…", ["Un signal à vérifier", "Normal", "Sans importance"], 0),
+            QuizQuestion("Que faire des produits proches de la date limite ?", ["Les vendre d'abord", "Les cacher", "Les garder pour plus tard"], 0),
+            QuizQuestion("Le soir, en caisse, tu laisses…", ["Peu d'argent", "Tout l'argent", "Rien à vérifier"], 0),
+          ],
+        ),
+      ],
+    ),
+  ],
+);

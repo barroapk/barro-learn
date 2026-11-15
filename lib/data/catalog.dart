@@ -69,7 +69,7 @@ const metierCategories = [
     tint: BarroColors.orangeSoft,
     metiers: [
       Metier('vente-ligne', 'Vendre sur WhatsApp et Facebook', 'Catalogue, clients, livraison', Icons.chat_outlined),
-      Metier('boutique', 'Gérer une petite boutique', 'Stock, caisse, bénéfice', Icons.point_of_sale),
+      Metier('boutique', 'Gérer une petite boutique', 'Stock, caisse, bénéfice', Icons.point_of_sale, available: true),
       Metier('app-android', 'Créer une app Android', 'Depuis son téléphone', Icons.code),
     ],
   ),

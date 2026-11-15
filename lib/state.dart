@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'data/course.dart';
+import 'data/boutique_course.dart';
 import 'data/maraichage_course.dart';
 import 'data/poultry_course.dart';
 
@@ -25,6 +26,7 @@ extension BackgroundStyleLabel on BackgroundStyle {
 const Map<String, Course> allCourses = {
   'poulet-chair': poultryCourse,
   'maraichage': maraichageCourse,
+  'boutique': boutiqueCourse,
 };
 
 /// Progression et réglages de l'apprenant, sauvegardés sur le téléphone.
