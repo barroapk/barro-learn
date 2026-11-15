@@ -1,0 +1,290 @@
+import 'course.dart';
+
+/// Parcours 2 : Maraîchage (jardin potager). Sources : fiche tomate FBT3 (CORAF/MITA), FAO Home Garden Leaflet 10.
+const maraichageCourse = Course(
+  title: "Maraîchage : ton jardin potager",
+  universe: "Métiers",
+  level: "Débutant",
+  summary: "15 leçons · 3 exercices pratiques · 1 examen final",
+  modules: [
+    CourseModule(
+      number: 1,
+      title: "Préparer son jardin",
+      goal: "Choisir le bon terrain, préparer le sol et réussir sa pépinière.",
+      exercise: "Ma première planche",
+      lessons: [
+        Lesson(
+          number: 1,
+          title: "Le maraîchage : un métier qui nourrit et rapporte",
+          minutes: 5,
+          hook: "Tomates, oignons, choux, gombo : ce que tu plantes aujourd'hui peut se vendre dans 2 à 3 mois. Quels légumes achète-t-on le plus autour de toi ?",
+          essentials: [
+            "Le maraîchage, c'est cultiver des légumes sur une petite surface, souvent avec arrosage.",
+            "La saison sèche et fraîche est souvent la meilleure période : moins de maladies, bons prix.",
+            "Commence petit : 2 ou 3 légumes que tu sais vendre, sur quelques planches.",
+          ],
+          task: "Note les 3 légumes les plus vendus au marché le plus proche de chez toi, avec leur prix.",
+          quiz: [
+            QuizQuestion("Le maraîchage, c'est…", ["Élever des animaux", "Cultiver des légumes sur une petite surface", "Couper du bois"], 1),
+            QuizQuestion("Pour débuter, il vaut mieux…", ["Planter 15 légumes différents", "Commencer avec 2 ou 3 légumes qui se vendent", "Planter sans regarder le marché"], 1),
+            QuizQuestion("Avant de planter, que regarder ?", ["Ce que les gens achètent et à quel prix", "La couleur des graines", "Rien"], 0),
+          ],
+        ),
+        Lesson(
+          number: 2,
+          title: "Choisir le bon terrain",
+          minutes: 5,
+          hook: "Un jardin loin de l'eau, c'est des heures à porter des seaux. Où est le point d'eau le plus proche de ton terrain ?",
+          essentials: [
+            "L'eau d'abord : un puits, un forage ou un bas-fond tout près du jardin.",
+            "Un sol qui garde un peu l'humidité, sans eau qui stagne après la pluie.",
+            "Une clôture contre les chèvres et les poules, et du soleil une bonne partie de la journée.",
+          ],
+          task: "Mesure la distance entre ton terrain et le point d'eau, et note si les animaux peuvent y entrer.",
+          quiz: [
+            QuizQuestion("Le plus important pour un jardin ?", ["Être près de l'eau", "Être près de la route", "Être à l'ombre toute la journée"], 0),
+            QuizQuestion("Un sol où l'eau stagne longtemps, c'est…", ["Parfait", "À éviter", "Obligatoire"], 1),
+            QuizQuestion("Pourquoi une clôture ?", ["Pour faire joli", "Contre les chèvres et les poules", "Pour avoir de l'ombre"], 1),
+          ],
+        ),
+        Lesson(
+          number: 3,
+          title: "Préparer le sol et les planches",
+          minutes: 6,
+          hook: "Une plante grandit aussi bien que la terre qui la porte. Comment rendre ta terre riche sans engrais chimique ?",
+          essentials: [
+            "Nettoie, bêche, retire les cailloux et les racines.",
+            "Fais des planches d'environ 1 m de large : tu dois atteindre le milieu sans marcher dessus.",
+            "Mélange de la matière organique bien décomposée : fumier ou compost.",
+          ],
+          task: "Prépare une planche de 1 m de large et prends-la en photo.",
+          quiz: [
+            QuizQuestion("Pourquoi une planche de 1 m de large ?", ["Pour atteindre le milieu sans marcher dessus", "Pour avoir moins de légumes", "Par habitude"], 0),
+            QuizQuestion("Quel fumier mettre ?", ["Du fumier frais", "Du fumier bien décomposé", "Aucun"], 1),
+            QuizQuestion("Avant de planter, on retire…", ["Les vers de terre", "Les cailloux et les racines", "La terre"], 1),
+          ],
+        ),
+        Lesson(
+          number: 4,
+          title: "Faire son compost",
+          minutes: 6,
+          hook: "Épluchures, feuilles, fumier : ce que tu jettes peut devenir le meilleur engrais. Comment ?",
+          essentials: [
+            "Mélange déchets verts (épluchures, herbes) et matières sèches (paille, feuilles mortes), avec un peu de fumier.",
+            "Garde le tas humide comme une éponge essorée, et retourne-le de temps en temps.",
+            "Le compost est prêt quand il sent la terre et qu'on ne reconnaît plus les déchets. Place le tas loin des légumes en culture.",
+          ],
+          task: "Commence un tas de compost dans un coin de ton terrain.",
+          quiz: [
+            QuizQuestion("Le compost doit être…", ["Sec comme du sable", "Humide comme une éponge essorée", "Noyé d'eau"], 1),
+            QuizQuestion("Le compost est prêt quand…", ["Il sent la terre", "Il sent mauvais", "On voit encore les épluchures"], 0),
+            QuizQuestion("Où placer le tas de compost ?", ["Sur les planches", "Loin des légumes en culture", "Dans le puits"], 1),
+          ],
+        ),
+        Lesson(
+          number: 5,
+          title: "Réussir sa pépinière",
+          minutes: 6,
+          hook: "La tomate et l'oignon ne se sèment pas directement au champ. Ils commencent leur vie en pépinière. Pourquoi ?",
+          essentials: [
+            "La pépinière est un petit espace protégé où les graines deviennent de jeunes plants.",
+            "Sème en lignes peu profondes, arrose doucement en pluie fine et fais de l'ombre légère au début.",
+            "Pour la tomate, les plants restent 4 à 6 semaines en pépinière avant le repiquage.",
+          ],
+          task: "Sème une petite pépinière de tomates et note la date du semis.",
+          quiz: [
+            QuizQuestion("Combien de temps une tomate reste-t-elle en pépinière ?", ["3 jours", "4 à 6 semaines", "6 mois"], 1),
+            QuizQuestion("Comment arroser une pépinière ?", ["Avec un gros jet", "En pluie fine", "Jamais"], 1),
+            QuizQuestion("À quoi sert la pépinière ?", ["À protéger les jeunes plants", "À stocker l'eau", "À sécher les graines"], 0),
+          ],
+        ),
+      ],
+    ),
+    CourseModule(
+      number: 2,
+      title: "Planter et entretenir",
+      goal: "Repiquer, arroser, protéger et soigner ses cultures.",
+      exercise: "Mon calendrier d'entretien",
+      lessons: [
+        Lesson(
+          number: 6,
+          title: "Repiquer les jeunes plants",
+          minutes: 5,
+          hook: "Le repiquage est un choc pour la plante. Comment l'aider à reprendre vite ?",
+          essentials: [
+            "Repique en fin d'après-midi, quand il fait moins chaud.",
+            "Arrose la pépinière avant d'arracher les plants, pour garder la terre autour des racines.",
+            "Plante en lignes bien espacées, puis arrose tout de suite.",
+          ],
+          task: "Repique 10 plants de ta pépinière en fin d'après-midi.",
+          quiz: [
+            QuizQuestion("Quand repiquer ?", ["À midi", "En fin d'après-midi", "La nuit sans arroser"], 1),
+            QuizQuestion("Avant d'arracher les plants, on…", ["Arrose la pépinière", "Coupe les feuilles", "Attend une semaine"], 0),
+            QuizQuestion("Après le repiquage, on…", ["Arrose tout de suite", "Attend 3 jours", "Met de l'engrais chimique"], 0),
+          ],
+        ),
+        Lesson(
+          number: 7,
+          title: "Bien arroser",
+          minutes: 5,
+          hook: "Trop d'eau fait pourrir, pas assez fait sécher. Comment trouver le juste milieu ?",
+          essentials: [
+            "Arrose tôt le matin ou en fin de journée, jamais en plein soleil.",
+            "Arrose au pied des plantes, pas sur les feuilles.",
+            "Mets ton doigt dans la terre : si elle est sèche à 2 ou 3 cm, il faut arroser.",
+          ],
+          task: "Pendant 3 jours, teste la terre avec ton doigt avant d'arroser.",
+          quiz: [
+            QuizQuestion("Quand arroser ?", ["En plein soleil", "Tôt le matin ou en fin de journée", "À n'importe quelle heure"], 1),
+            QuizQuestion("Où verser l'eau ?", ["Sur les feuilles", "Au pied des plantes", "Dans l'allée"], 1),
+            QuizQuestion("Comment savoir s'il faut arroser ?", ["Mettre le doigt dans la terre", "Regarder le ciel", "Arroser 5 fois par jour"], 0),
+          ],
+        ),
+        Lesson(
+          number: 8,
+          title: "Pailler pour garder l'eau",
+          minutes: 5,
+          hook: "Avec un peu de paille, tu peux arroser moins souvent. Comment ?",
+          essentials: [
+            "Le paillage, c'est couvrir le sol entre les plantes avec de la paille ou des herbes sèches.",
+            "Il garde l'humidité, protège le sol du soleil et limite les mauvaises herbes.",
+            "Ne colle pas la paille contre la tige des plantes.",
+          ],
+          task: "Paille une planche et compare-la avec une planche sans paille après 2 jours.",
+          quiz: [
+            QuizQuestion("Le paillage sert à…", ["Garder l'humidité du sol", "Attirer les insectes", "Chauffer les plantes"], 0),
+            QuizQuestion("Avec quoi pailler ?", ["Du plastique brûlé", "De la paille ou des herbes sèches", "Du sable"], 1),
+            QuizQuestion("Où mettre la paille ?", ["Entre les plantes, pas contre la tige", "Sur les feuilles", "Dans le puits"], 0),
+          ],
+        ),
+        Lesson(
+          number: 9,
+          title: "Désherber et tuteurer",
+          minutes: 5,
+          hook: "Les mauvaises herbes volent l'eau et la nourriture de tes légumes. Comment les garder sous contrôle ?",
+          essentials: [
+            "Désherbe souvent quand les herbes sont petites : c'est plus facile.",
+            "Certaines tomates poussent longtemps en hauteur : il faut les attacher à un tuteur et enlever les gourmands.",
+            "Attache sans serrer, pour ne pas blesser la tige.",
+          ],
+          task: "Désherbe une planche et attache 3 plants de tomate à un tuteur.",
+          quiz: [
+            QuizQuestion("Quand désherber ?", ["Quand les herbes sont petites", "Une fois par an", "Jamais"], 0),
+            QuizQuestion("Un tuteur sert à…", ["Soutenir la plante qui pousse en hauteur", "Arroser", "Chasser les oiseaux"], 0),
+            QuizQuestion("Comment attacher la tige ?", ["Très serré", "Sans serrer", "Avec du fil de fer coupant"], 1),
+          ],
+        ),
+        Lesson(
+          number: 10,
+          title: "Protéger ses cultures naturellement",
+          minutes: 6,
+          hook: "Des pucerons sur tes feuilles ? Avant d'acheter un produit chimique, il existe une recette simple.",
+          essentials: [
+            "Observe tes plantes chaque jour : un problème vu tôt se règle plus facilement.",
+            "Recette FAO contre les pucerons : 10 g de piment sec et une poignée d'ail ou d'oignon dans 1 litre d'eau, une nuit, filtrer, puis diluer dans 4 à 5 litres d'eau.",
+            "Pulvérise à l'ombre, pas en plein soleil. Le mélange pique : protège tes yeux et ta peau.",
+          ],
+          task: "Fais le tour de ton jardin et note les insectes ou les feuilles abîmées que tu vois.",
+          quiz: [
+            QuizQuestion("Combien de litres d'eau pour diluer le concentré piment-ail ?", ["4 à 5 litres", "100 litres", "Pas besoin de diluer"], 0),
+            QuizQuestion("Quand pulvériser ?", ["En plein soleil", "À l'ombre ou en fin de journée", "Sous la pluie"], 1),
+            QuizQuestion("Le premier geste contre les insectes ?", ["Observer chaque jour", "Arracher toutes les plantes", "Acheter le produit le plus fort"], 0),
+          ],
+        ),
+      ],
+    ),
+    CourseModule(
+      number: 3,
+      title: "Récolter, compter et vendre",
+      goal: "Récolter au bon moment, connaître ses coûts et vendre avec bénéfice.",
+      exercise: "Le budget de mon jardin",
+      lessons: [
+        Lesson(
+          number: 11,
+          title: "Récolter au bon moment",
+          minutes: 5,
+          hook: "Une tomate cueillie trop tôt ou trop tard perd de sa valeur. Quand cueillir ?",
+          essentials: [
+            "Pour la tomate, les premières fleurs arrivent 3 à 6 semaines après le repiquage.",
+            "Récolte le matin, quand il fait frais.",
+            "Cueille les tomates qui commencent à rougir si le marché est loin : elles finiront de mûrir en route.",
+          ],
+          task: "Note la date des premières fleurs sur tes plants de tomate.",
+          quiz: [
+            QuizQuestion("Quand récolter ?", ["Le matin, quand il fait frais", "À midi", "La nuit"], 0),
+            QuizQuestion("Quand arrivent les premières fleurs de tomate ?", ["3 à 6 semaines après le repiquage", "Le lendemain", "Après 1 an"], 0),
+            QuizQuestion("Le marché est loin : quelles tomates cueillir ?", ["Les toutes vertes", "Celles qui commencent à rougir", "Les trop mûres"], 1),
+          ],
+        ),
+        Lesson(
+          number: 12,
+          title: "Conserver et transporter sans perte",
+          minutes: 5,
+          hook: "Une partie des légumes s'abîme entre le jardin et le marché. Comment en perdre moins ?",
+          essentials: [
+            "Garde les légumes à l'ombre, dans un endroit aéré.",
+            "Utilise des caisses ou des paniers, pas de sacs serrés où les légumes s'écrasent.",
+            "Trie : vends d'abord les légumes abîmés ou très mûrs.",
+          ],
+          task: "Prépare une caisse ou un panier pour transporter ta prochaine récolte.",
+          quiz: [
+            QuizQuestion("Où garder les légumes récoltés ?", ["Au soleil", "À l'ombre et aéré", "Dans un sac fermé"], 1),
+            QuizQuestion("Pour le transport, mieux vaut…", ["Des caisses ou des paniers", "Des sacs très serrés", "Les tenir dans les mains"], 0),
+            QuizQuestion("Quels légumes vendre en premier ?", ["Les plus abîmés ou très mûrs", "Les plus beaux", "Aucun"], 0),
+          ],
+        ),
+        Lesson(
+          number: 13,
+          title: "Calculer ses coûts",
+          minutes: 6,
+          hook: "Combien te coûte vraiment un kilo de tomates ? Sans calcul, impossible de savoir si tu gagnes.",
+          essentials: [
+            "Additionne tout : semences, fumier ou compost, eau, petit matériel, transport, main-d'œuvre.",
+            "Coût par kilo = total des dépenses ÷ kilos récoltés.",
+            "Exemple inventé : 30 000 FCFA de dépenses pour 150 kg récoltés, cela fait 200 FCFA le kilo.",
+          ],
+          task: "Liste toutes tes dépenses du jardin avec leur montant.",
+          quiz: [
+            QuizQuestion("Coût par kilo = ?", ["Dépenses ÷ kilos récoltés", "Dépenses × kilos", "Prix du marché"], 0),
+            QuizQuestion("20 000 FCFA de dépenses, 100 kg récoltés. Coût par kilo ?", ["200 FCFA", "2 000 FCFA", "20 FCFA"], 0),
+            QuizQuestion("Faut-il compter le transport ?", ["Oui", "Non", "Seulement s'il pleut"], 0),
+          ],
+        ),
+        Lesson(
+          number: 14,
+          title: "Vendre au bon prix",
+          minutes: 5,
+          hook: "Quand tout le monde récolte en même temps, les prix baissent. Comment éviter ce piège ?",
+          essentials: [
+            "Prix de vente = coût par kilo + ton bénéfice. Compare avec le marché.",
+            "Décale tes semis de quelques semaines pour ne pas récolter en même temps que tout le monde.",
+            "Clients possibles : marché, restaurants, voisins, revendeuses, cantines.",
+          ],
+          task: "Demande le prix du kilo de tomates à 3 vendeuses de ton marché.",
+          quiz: [
+            QuizQuestion("Prix de vente = ?", ["Coût par kilo + bénéfice", "Le prix du voisin", "Le prix des semences"], 0),
+            QuizQuestion("Pourquoi décaler ses semis ?", ["Pour ne pas récolter en même temps que tout le monde", "Pour avoir moins de légumes", "Par hasard"], 0),
+            QuizQuestion("Un bon client pour un maraîcher ?", ["Un restaurant", "Personne", "Seulement la famille"], 0),
+          ],
+        ),
+        Lesson(
+          number: 15,
+          title: "Bilan de saison et rotation",
+          minutes: 6,
+          hook: "La saison est finie. As-tu gagné, et que planter au même endroit la prochaine fois ?",
+          essentials: [
+            "Bénéfice = total des ventes − total des dépenses.",
+            "Rotation : ne replante pas la même famille de légumes au même endroit chaque saison, pour fatiguer moins le sol et limiter les maladies.",
+            "Note ce qui a bien marché et ce qui a raté, pour faire mieux la saison prochaine.",
+          ],
+          task: "Calcule le bénéfice de ta saison et dessine le plan de ton jardin pour la prochaine.",
+          quiz: [
+            QuizQuestion("Bénéfice = ?", ["Ventes − dépenses", "Ventes + dépenses", "Nombre de planches"], 0),
+            QuizQuestion("La rotation, c'est…", ["Changer de légume à chaque saison au même endroit", "Tourner autour du jardin", "Arroser en rond"], 0),
+            QuizQuestion("Pourquoi faire la rotation ?", ["Pour fatiguer moins le sol et limiter les maladies", "Pour faire joli", "Pour rien"], 0),
+          ],
+        ),
+      ],
+    ),
+  ],
+);
