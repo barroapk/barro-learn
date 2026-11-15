@@ -42,7 +42,7 @@ const metierCategories = [
     tint: BarroColors.greenSoft,
     metiers: [
       Metier('poulet-chair', 'Élevage de poulets de chair', '15 leçons · 6 semaines', Icons.egg_outlined, available: true),
-      Metier('maraichage', 'Maraîchage', 'Jardin potager et légumes', Icons.grass),
+      Metier('maraichage', 'Maraîchage', '15 leçons · jardin potager', Icons.grass, available: true),
       Metier('pondeuses', 'Poules pondeuses', 'Produire et vendre des œufs', Icons.egg_alt_outlined),
       Metier('embouche', 'Embouche ovine', 'Engraisser des moutons', Icons.pets_outlined),
       Metier('pisciculture', 'Pisciculture', 'Élever des poissons', Icons.set_meal_outlined),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/catalog.dart';
+import '../state.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'course_screen.dart';
@@ -169,6 +170,7 @@ class MetierTile extends StatelessWidget {
         semanticLabel: metier.title,
         onTap: () {
           if (metier.available) {
+            AppState.instance.openCourse(metier.id);
             Navigator.of(context).push(barroRoute(
               BarroPage(child: CourseScreen(onBack: () => Navigator.of(context).pop())),
             ));

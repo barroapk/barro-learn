@@ -384,7 +384,7 @@ class StatsStrip extends StatelessWidget {
       child: Row(
         children: [
           cell(s.streak, s.streak > 1 ? 'jours de série' : 'jour de série', BarroColors.orangeText),
-          cell(s.completedCount, 'leçons finies', BarroColors.ink),
+          cell(s.totalCompleted, 'leçons finies', BarroColors.ink),
           cell(s.xp, 'XP gagnés', BarroColors.greenText, divider: false),
         ],
       ),

@@ -48,16 +48,18 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     final q = _norm(_query.trim());
     final metierHits = <(Metier, MetierCategory)>[];
-    final lessonHits = <Lesson>[];
+    final lessonHits = <(String, Lesson)>[];
     if (q.isNotEmpty) {
       for (final c in metierCategories) {
         for (final m in c.metiers) {
           if (_norm('${m.title} ${m.subtitle} ${c.title}').contains(q)) metierHits.add((m, c));
         }
       }
-      for (final l in AppState.instance.course.allLessons) {
-        if (_norm('${l.title} ${l.hook} ${l.essentials.join(' ')}').contains(q)) lessonHits.add(l);
-      }
+      allCourses.forEach((id, course) {
+        for (final l in course.allLessons) {
+          if (_norm('${l.title} ${l.hook} ${l.essentials.join(' ')}').contains(q)) lessonHits.add((id, l));
+        }
+      });
     }
 
     return BarroPage(
@@ -133,7 +135,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 if (lessonHits.isNotEmpty) ...[
                   Text('Leçons', style: display(17)),
                   const SizedBox(height: 10),
-                  for (final l in lessonHits) _LessonHit(lesson: l),
+                  for (final h in lessonHits) _LessonHit(courseId: h.$1, lesson: h.$2),
                 ],
               ],
             ),
@@ -145,21 +147,23 @@ class _SearchScreenState extends State<SearchScreen> {
 }
 
 class _LessonHit extends StatelessWidget {
+  final String courseId;
   final Lesson lesson;
 
-  const _LessonHit({required this.lesson});
+  const _LessonHit({required this.courseId, required this.lesson});
 
   @override
   Widget build(BuildContext context) {
     final state = AppState.instance;
-    final unlocked = state.isUnlocked(lesson.number);
-    final done = state.isCompleted(lesson.number);
+    final unlocked = state.isUnlockedIn(courseId, lesson.number);
+    final done = state.isCompletedIn(courseId, lesson.number);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Tap(
         semanticLabel: lesson.title,
         onTap: () {
           if (unlocked) {
+            AppState.instance.openCourse(courseId);
             Navigator.of(context).push(barroRoute(LessonScreen(lesson: lesson)));
           } else {
             ScaffoldMessenger.of(context)
@@ -187,7 +191,7 @@ class _LessonHit extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(lesson.title, style: body(15, weight: FontWeight.w700, height: 1.25)),
-                    Text('Leçon ${lesson.number} · Poulets de chair', style: body(12, color: BarroColors.muted)),
+                    Text('Leçon ${lesson.number} · ${allCourses[courseId]?.title ?? ''}', style: body(12, color: BarroColors.muted)),
                   ],
                 ),
               ),
