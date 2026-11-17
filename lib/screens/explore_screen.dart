@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../data/catalog.dart';
 import '../theme.dart';
@@ -71,9 +72,10 @@ class ExploreScreen extends StatelessWidget {
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
-            itemCount: _universes.length,
+            itemCount: _universes.length + 1,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, i) {
+              if (i == _universes.length) return const FadeSlideIn(index: 6, child: _OnlineCoursesCard());
               final u = _universes[i];
               return FadeSlideIn(
                 index: i,
@@ -121,6 +123,56 @@ class ExploreScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Passerelle vers Mindluster : des cours gratuits en ligne, ouverts dans le navigateur.
+class _OnlineCoursesCard extends StatelessWidget {
+  const _OnlineCoursesCard();
+
+  Future<void> _open(BuildContext context) async {
+    var ok = false;
+    try {
+      ok = await launchUrl(Uri.parse('https://www.mindluster.com'), mode: LaunchMode.externalApplication);
+    } catch (_) {}
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Impossible d\'ouvrir le site. Vérifie ta connexion.')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tap(
+      onTap: () => _open(context),
+      semanticLabel: 'Ouvrir les cours gratuits en ligne',
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: BarroColors.greenDeep,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.school_outlined, color: Colors.white, size: 32),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Cours gratuits en ligne', style: display(16, color: Colors.white)),
+                  const SizedBox(height: 2),
+                  Text('Plus de cours sur Mindluster, avec certificats gratuits.',
+                      style: body(12, color: BarroColors.greenMid, height: 1.35)),
+                ],
+              ),
+            ),
+            const Icon(Icons.open_in_new, color: Colors.white, size: 20),
+          ],
+        ),
+      ),
     );
   }
 }
