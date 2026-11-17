@@ -17,7 +17,7 @@ const boutiqueCourse = Course(
           number: 1,
           title: "Choisir ce que tu vends",
           minutes: 5,
-          hook: "Une boutique qui vend ce dont les gens ont besoin chaque jour ne reste jamais vide. Que achètent tes voisins chaque semaine ?",
+          hook: "Une boutique qui vend ce dont les gens ont besoin chaque jour ne reste jamais vide. Qu'achètent tes voisins chaque semaine ?",
           essentials: [
             "Commence par les produits de tous les jours : savon, sucre, huile, riz, recharges.",
             "Demande à 10 personnes de ton quartier ce qu'elles achètent le plus souvent.",
