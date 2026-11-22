@@ -34,6 +34,30 @@ jobs:
             sed -i 's#<manifest xmlns:android="http://schemas.android.com/apk/res/android">#&\n    <uses-permission android:name="android.permission.INTERNET"/>#' "$MANIFEST"
           fi
 
+      - name: Préparer la signature
+        env:
+          KEYSTORE_B64: ${{ secrets.BARRO_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "Secret BARRO_KEYSTORE_BASE64 absent : arrêt."; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > android/app/barro-release.p12
+          GRADLE=android/app/build.gradle.kts
+          grep -q 'signingConfig = signingConfigs.getByName("debug")' "$GRADLE" || { echo "Modèle Gradle inattendu : arrêt."; exit 1; }
+          grep -q '^    buildTypes {' "$GRADLE" || { echo "Bloc buildTypes introuvable : arrêt."; exit 1; }
+          cat > "$RUNNER_TEMP/signing.kts" <<'KTS'
+              signingConfigs {
+                  create("release") {
+                      storeFile = file("barro-release.p12")
+                      storeType = "pkcs12"
+                      storePassword = System.getenv("KEYSTORE_PASSWORD")
+                      keyAlias = "barro"
+                      keyPassword = System.getenv("KEYSTORE_PASSWORD")
+                  }
+              }
+          KTS
+          sed -i "/^    buildTypes {/e cat $RUNNER_TEMP/signing.kts" "$GRADLE"
+          sed -i 's/signingConfig = signingConfigs.getByName("debug")/signingConfig = signingConfigs.getByName("release")/' "$GRADLE"
+          grep -q 'create("release")' "$GRADLE" && grep -q 'getByName("release")' "$GRADLE" || { echo "Signature non configurée : arrêt."; exit 1; }
+
       - name: Télécharger les paquets
         run: flutter pub get
 
@@ -44,10 +68,19 @@ jobs:
         run: flutter test
 
       - name: Compiler une APK légère par type de téléphone
-        run: flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/symbols
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.BARRO_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_PASSWORD" ]; then echo "Secret BARRO_KEYSTORE_PASSWORD absent : arrêt."; exit 1; fi
+          flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/symbols
 
       - name: Afficher la taille des APK
         run: ls -lh build/app/outputs/flutter-apk/*.apk
+
+      - name: Vérifier la signature
+        run: |
+          keytool -printcert -jarfile build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | tee signature.txt
+          grep -q "CN=Pierre Clavers BARRO" signature.txt || { echo "APK non signée avec la clé BARRO : arrêt."; exit 1; }
 
       - name: APK pour la plupart des téléphones (arm64)
         uses: actions/upload-artifact@v4
