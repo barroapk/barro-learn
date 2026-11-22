@@ -264,6 +264,15 @@ class AppState extends ChangeNotifier {
 
   // --- Réinitialisation sécurisée ---
 
+  /// Vérifie la clé témoin par relecture ; ne l'écrit que si elle manque ou diffère.
+  Future<void> _ensureMarker(SharedPreferences p, Object marker) async {
+    try {
+      await p.reload();
+      if (_same(p.get(_resetPendingKey), marker)) return;
+    } catch (_) {}
+    await _writeAndVerify(p, {_resetPendingKey: marker});
+  }
+
   /// Réinitialise la progression. Renvoie true seulement si les zéros ont été
   /// relus depuis le stockage et la clé témoin retirée (confirmé par relecture).
   Future<bool> resetProgress() => _enqueue<bool>(_resetJob);
@@ -345,7 +354,7 @@ class AppState extends ChangeNotifier {
     }
 
     // Tous les autres cas : la clé témoin reste, avec sa valeur d'origine.
-    await _writeAndVerify(p, {_resetPendingKey: marker});
+    await _ensureMarker(p, marker);
     _markUnhealthy();
     try {
       await p.reload(); // cache = disque

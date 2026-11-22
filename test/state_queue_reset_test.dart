@@ -169,11 +169,11 @@ void main() {
       final env = await startWith(store);
 
       env.state.setName('A');
+      await store.gateReached.future; // A est en cours d'écriture, bloquée
       env.state.completeLesson(lesson, 10);
       env.state.setName('B');
       var finished = false;
       final pending = env.state.pendingSave.then((_) => finished = true);
-      await store.gateReached.future;
       await drain();
       expect(finished, isFalse);
 
