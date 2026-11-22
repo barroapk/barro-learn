@@ -42,10 +42,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
     if (ok == true && mounted) {
-      AppState.instance.resetProgress();
+      final done = await AppState.instance.resetProgress();
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Progression effacée.')));
+        ..showSnackBar(SnackBar(
+          content: Text(done
+              ? 'Progression effacée.'
+              : 'La remise à zéro a échoué. Tes données sont conservées. Réessaie plus tard.'),
+        ));
     }
   }
 

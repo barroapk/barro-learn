@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -34,7 +37,13 @@ class AppState extends ChangeNotifier {
   AppState._();
   static final AppState instance = AppState._();
 
+  /// Objet neuf pour les tests (pas de singleton partagé).
+  @visibleForTesting
+  AppState.forTesting();
+
   static const xpPerLevel = 300;
+  static const _progressKeys = ['completed', 'xp', 'streak', 'lastDay'];
+  static const _resetPendingKey = 'progress_reset_pending';
 
   SharedPreferences? _prefs;
 
@@ -50,58 +59,158 @@ class AppState extends ChangeNotifier {
   bool dataSaver = false;
   bool dailyReminder = false;
 
+  // Protection : un groupe n'est écrit que s'il a été lu sans erreur.
+  bool _progressOk = false;
+  bool _settingsOk = false;
+  bool _writeCourseId = true;
+
+  // File d'attente : sauvegardes et réinitialisations, une par une.
+  Future<void> _queue = Future<void>.value();
+  bool _flushWaiting = false;
+
+  /// Vrai si la dernière écriture a échoué.
+  bool saveFailed = false;
+
+  /// Vrai si la progression du téléphone n'est pas considérée comme saine.
+  bool get progressUnreadable => _prefs != null && !_progressOk;
+
+  /// Fin de tout ce qui est déjà demandé dans la file.
+  @visibleForTesting
+  Future<void> get pendingSave => _queue;
+
   Course get course => allCourses[courseId] ?? poultryCourse;
 
   String _key(int n, [String? id]) => '${id ?? courseId}:$n';
 
   /// Choisit le parcours affiché partout dans l'app.
   void openCourse(String id) {
-    if (!allCourses.containsKey(id) || id == courseId) return;
+    if (!allCourses.containsKey(id)) return;
+    if (id == courseId && _writeCourseId) return;
     courseId = id;
+    _writeCourseId = true;
     _save();
     notifyListeners();
   }
 
   Future<void> load() async {
+    final SharedPreferences p;
     try {
-      final p = await SharedPreferences.getInstance();
-      _prefs = p;
+      p = await SharedPreferences.getInstance();
+    } catch (_) {
+      return; // pas de stockage : l'app marche en mémoire, rien n'est écrit
+    }
+
+    // Progression : tout est lu dans des variables locales avant d'être appliqué.
+    try {
+      if (p.containsKey(_resetPendingKey)) {
+        throw StateError('remise à zéro inachevée');
+      }
+      final completed = (p.getStringList('completed') ?? const <String>[])
+          .map((e) => e.contains(':') ? e : 'poulet-chair:$e')
+          .toList();
+      final x = p.getInt('xp') ?? 0;
+      var s = p.getInt('streak') ?? 0;
+      final d = p.getString('lastDay') ?? '';
+      // Une série s'arrête si on a sauté un jour.
+      if (d.isNotEmpty && d != _today() && d != _yesterday()) s = 0;
       _completed
         ..clear()
-        ..addAll((p.getStringList('completed') ?? const []).map((e) => e.contains(':') ? e : 'poulet-chair:$e'));
-      final saved = p.getString('courseId');
-      if (saved != null && allCourses.containsKey(saved)) courseId = saved;
-      xp = p.getInt('xp') ?? 0;
-      streak = p.getInt('streak') ?? 0;
-      _lastDay = p.getString('lastDay') ?? '';
-      learnerName = p.getString('name') ?? '';
-      final bg = p.getString('background');
-      background = BackgroundStyle.values.firstWhere((b) => b.name == bg, orElse: () => BackgroundStyle.blanc);
-      textScale = p.getDouble('textScale') ?? 1.0;
-      dataSaver = p.getBool('dataSaver') ?? false;
-      dailyReminder = p.getBool('dailyReminder') ?? false;
-      // Une série s'arrête si on a sauté un jour.
-      if (_lastDay.isNotEmpty && _lastDay != _today() && _lastDay != _yesterday()) {
-        streak = 0;
-      }
+        ..addAll(completed);
+      xp = x;
+      streak = s;
+      _lastDay = d;
+      _progressOk = true;
     } catch (_) {
-      // Sans stockage, l'app marche quand même : la progression reste en mémoire.
+      _progressOk = false;
     }
+
+    // Réglages
+    try {
+      final saved = p.getString('courseId');
+      final name = p.getString('name') ?? '';
+      final bg = p.getString('background');
+      final ts = p.getDouble('textScale') ?? 1.0;
+      final ds = p.getBool('dataSaver') ?? false;
+      final dr = p.getBool('dailyReminder') ?? false;
+      if (saved != null) {
+        if (allCourses.containsKey(saved)) {
+          courseId = saved;
+        } else {
+          _writeCourseId = false; // cours inconnu : on ne l'écrase pas
+        }
+      }
+      learnerName = name;
+      background = BackgroundStyle.values.firstWhere((b) => b.name == bg, orElse: () => BackgroundStyle.blanc);
+      textScale = ts;
+      dataSaver = ds;
+      dailyReminder = dr;
+      _settingsOk = true;
+    } catch (_) {
+      _settingsOk = false;
+    }
+
+    _prefs = p;
+  }
+
+  Future<T> _enqueue<T>(Future<T> Function() job) {
+    final completer = Completer<T>();
+    _queue = _queue.then((_) async {
+      try {
+        completer.complete(await job());
+      } catch (e, s) {
+        completer.completeError(e, s);
+      }
+    });
+    return completer.future;
   }
 
   void _save() {
+    if (_prefs == null || _flushWaiting) return;
+    _flushWaiting = true;
+    unawaited(_enqueue<bool>(() async {
+      // Dès ce moment, tout nouveau changement déclenche un nouveau passage.
+      _flushWaiting = false;
+      return _flush();
+    }).catchError((_) => false));
+  }
+
+  /// Écrit l'état actuel (photo prise maintenant), clé après clé.
+  Future<bool> _flush() async {
     final p = _prefs;
-    if (p == null) return;
-    p.setStringList('completed', _completed.toList());
-    p.setString('courseId', courseId);
-    p.setInt('xp', xp);
-    p.setInt('streak', streak);
-    p.setString('lastDay', _lastDay);
-    p.setString('name', learnerName);
-    p.setString('background', background.name);
-    p.setDouble('textScale', textScale);
-    p.setBool('dataSaver', dataSaver);
-    p.setBool('dailyReminder', dailyReminder);
+    if (p == null) return true;
+    final values = <String, Object>{};
+    if (_progressOk) {
+      values['completed'] = _completed.toList();
+      values['xp'] = xp;
+      values['streak'] = streak;
+      values['lastDay'] = _lastDay;
+    }
+    if (_settingsOk) {
+      if (_writeCourseId) values['courseId'] = courseId;
+      values['name'] = learnerName;
+      values['background'] = background.name;
+      values['textScale'] = textScale;
+      values['dataSaver'] = dataSaver;
+      values['dailyReminder'] = dailyReminder;
+    }
+    var ok = true;
+    try {
+      for (final e in values.entries) {
+        if (!await _set(p, e.key, e.value)) ok = false;
+      }
+    } catch (_) {
+      ok = false;
+    }
+    saveFailed = !ok;
+    return ok;
+  }
+
+  Future<bool> _set(SharedPreferences p, String key, Object value) {
+    if (value is List) return p.setStringList(key, List<String>.from(value));
+    if (value is int) return p.setInt(key, value);
+    if (value is double) return p.setDouble(key, value);
+    if (value is bool) return p.setBool(key, value);
+    return p.setString(key, value as String);
   }
 
   static String _dayKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
@@ -153,13 +262,168 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void resetProgress() {
+  // --- Réinitialisation sécurisée ---
+
+  /// Réinitialise la progression. Renvoie true seulement si les zéros ont été
+  /// relus depuis le stockage et la clé témoin retirée (confirmé par relecture).
+  Future<bool> resetProgress() => _enqueue<bool>(_resetJob);
+
+  static const Map<String, Object?> _zeroValues = {
+    'completed': <String>[],
+    'xp': 0,
+    'streak': 0,
+    'lastDay': '',
+  };
+
+  void _zeroMemory() {
     _completed.clear();
     xp = 0;
     streak = 0;
     _lastDay = '';
-    _save();
+  }
+
+  /// Progression non saine pour cette session : rien n'est plus écrit
+  /// pour la progression, et la mémoire repart des valeurs par défaut.
+  void _markUnhealthy() {
+    _zeroMemory();
+    _progressOk = false;
     notifyListeners();
+  }
+
+  Future<bool> _resetJob() async {
+    final p = _prefs;
+    if (p == null) {
+      _zeroMemory(); // pas de stockage : réinitialisation en mémoire seulement
+      notifyListeners();
+      return true;
+    }
+
+    // 1. Lire le disque lui-même : progression ET clé témoin éventuelle.
+    final Map<String, Object?> raw;
+    final Object? existingMarker;
+    try {
+      await p.reload();
+      raw = {for (final k in _progressKeys) k: p.get(k)};
+      existingMarker = p.get(_resetPendingKey);
+    } catch (_) {
+      return false; // rien n'a été touché
+    }
+    final hadMarker = existingMarker != null;
+
+    // 2. Nouvelle copie confirmée (les copies existantes ne sont jamais écrasées).
+    final backupKey = await _backupRawProgress(p, raw);
+    if (backupKey == null) return false;
+
+    // 3. Clé témoin : réutilisée telle quelle si elle existe, sinon écrite et confirmée.
+    final Object marker = existingMarker ?? backupKey;
+    if (!hadMarker && !await _setConfirmed(p, _resetPendingKey, backupKey)) {
+      // Présence incertaine : on ne reste "sain" que si son absence est confirmée.
+      if (!await _removeConfirmed(p, _resetPendingKey)) _markUnhealthy();
+      return false;
+    }
+
+    // 4. Zéros écrits et relus ; la clé témoin n'est retirée qu'ensuite.
+    if (await _writeAndVerify(p, _zeroValues) && await _removeConfirmed(p, _resetPendingKey)) {
+      _zeroMemory();
+      _progressOk = true;
+      saveFailed = false;
+      notifyListeners();
+      return true;
+    }
+
+    // 5. Échec.
+    saveFailed = true;
+    final restored = await _writeAndVerify(p, raw);
+
+    // Seul cas où la clé peut disparaître : créée par CETTE tentative,
+    // progression d'origine relue à l'identique, absence de la clé confirmée.
+    if (!hadMarker && restored && await _removeConfirmed(p, _resetPendingKey)) {
+      try {
+        await p.reload();
+      } catch (_) {}
+      return false; // mémoire jamais modifiée, _progressOk inchangé
+    }
+
+    // Tous les autres cas : la clé témoin reste, avec sa valeur d'origine.
+    await _writeAndVerify(p, {_resetPendingKey: marker});
+    _markUnhealthy();
+    try {
+      await p.reload(); // cache = disque
+    } catch (_) {}
+    return false;
+  }
+
+  /// Écrit chaque valeur (null = clé absente), relit le stockage et compare.
+  /// Seule la relecture décide du résultat.
+  Future<bool> _writeAndVerify(SharedPreferences p, Map<String, Object?> values) async {
+    for (final e in values.entries) {
+      try {
+        final v = e.value;
+        if (v == null) {
+          await p.remove(e.key);
+        } else {
+          await _set(p, e.key, v);
+        }
+      } catch (_) {}
+    }
+    try {
+      await p.reload();
+      for (final e in values.entries) {
+        final ok = e.value == null ? !p.containsKey(e.key) : _same(p.get(e.key), e.value);
+        if (!ok) return false;
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static bool _same(Object? a, Object? b) {
+    if (a is List && b is List) {
+      if (a.length != b.length) return false;
+      for (var i = 0; i < a.length; i++) {
+        if (a[i] != b[i]) return false;
+      }
+      return true;
+    }
+    if (a is double && b is double && a.isNaN && b.isNaN) return true;
+    return a == b;
+  }
+
+  /// Copie sous la première clé libre progress_backup_N, confirmée par relecture.
+  /// Renvoie la clé utilisée, ou null. Jamais d'écrasement.
+  Future<String?> _backupRawProgress(SharedPreferences p, Map<String, Object?> raw) async {
+    try {
+      final json = jsonEncode(raw);
+      for (var n = 1; n <= 1000; n++) {
+        final key = 'progress_backup_$n';
+        if (p.containsKey(key)) continue;
+        return await _setConfirmed(p, key, json) ? key : null;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> _setConfirmed(SharedPreferences p, String key, String value) async {
+    try {
+      await p.setString(key, value);
+      await p.reload();
+      return p.getString(key) == value;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> _removeConfirmed(SharedPreferences p, String key) async {
+    try {
+      await p.remove(key);
+      await p.reload();
+      return !p.containsKey(key);
+    } catch (_) {
+      return false;
+    }
   }
 
   // --- Réglages ---
