@@ -79,8 +79,14 @@ jobs:
 
       - name: Vérifier la signature
         run: |
-          keytool -printcert -jarfile build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | tee signature.txt
-          grep -q "CN=Pierre Clavers BARRO" signature.txt || { echo "APK non signée avec la clé BARRO : arrêt."; exit 1; }
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner"
+          N=0
+          for apk in build/app/outputs/flutter-apk/*-release.apk; do
+            "$APKSIGNER" verify --verbose --print-certs "$apk" | tee -a signature.txt
+            N=$((N + 1))
+          done
+          test "$(grep -c 'certificate DN: CN=Pierre Clavers BARRO' signature.txt)" -eq "$N" || { echo "Une APK n'est pas signée avec la clé BARRO : arrêt."; exit 1; }
+          echo "Les $N APK sont signées avec la clé BARRO."
 
       - name: APK pour la plupart des téléphones (arm64)
         uses: actions/upload-artifact@v4
