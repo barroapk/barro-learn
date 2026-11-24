@@ -22,7 +22,10 @@ class _LecteurScreenState extends State<LecteurScreen> {
   late final YoutubePlayerController _controller = YoutubePlayerController.fromVideoId(
     videoId: _lecon.youtube,
     autoPlay: true,
-    params: const YoutubePlayerParams(showFullscreenButton: false),
+    params: const YoutubePlayerParams(
+      showFullscreenButton: false,
+      origin: 'https://www.youtube-nocookie.com', // évite l'erreur 152/153 dans la WebView
+    ),
   );
 
   LeconVideo get _lecon => widget.cours.lecons[_index];
