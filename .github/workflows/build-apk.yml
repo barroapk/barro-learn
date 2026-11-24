@@ -85,7 +85,7 @@ jobs:
             "$APKSIGNER" verify --verbose --print-certs "$apk" | tee -a signature.txt
             N=$((N + 1))
           done
-          test "$(grep -c 'certificate DN: CN=Pierre Clavers BARRO' signature.txt)" -eq "$N" || { echo "Une APK n'est pas signée avec la clé BARRO : arrêt."; exit 1; }
+          test "$(grep -c 'certificate SHA-256 digest: 35728cbc77d14fe13d683d6194a0bd613eefc8a39179ff0f8fbe63d6e721e8b2' signature.txt)" -eq "$N" || { echo "Une APK n'est pas signée avec la clé BARRO : arrêt."; exit 1; }
           echo "Les $N APK sont signées avec la clé BARRO."
 
       - name: APK pour la plupart des téléphones (arm64)
