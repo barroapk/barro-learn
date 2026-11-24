@@ -104,7 +104,7 @@ class _LecteurScreenState extends State<LecteurScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Vidéo YouTube de la chaîne Mindluster, lue avec le lecteur officiel YouTube.',
+                  'Vidéo YouTube lue avec le lecteur officiel. Elle appartient à son créateur, dont la chaîne s\'affiche dans le lecteur. Catalogue proposé avec Mindluster.',
                   style: body(12, color: BarroColors.faint),
                 ),
               ],
