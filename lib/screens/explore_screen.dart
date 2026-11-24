@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/catalog.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'bibliotheque_screen.dart';
 import 'metiers_screen.dart';
 import 'search_screen.dart';
 
@@ -127,11 +128,12 @@ class ExploreScreen extends StatelessWidget {
   }
 }
 
-/// Passerelle vers Mindluster : des cours gratuits en ligne, ouverts dans le navigateur.
+/// Bibliothèque de formations : cours vidéo Mindluster lus dans BARRO,
+/// avec un lien secondaire vers le site Mindluster.
 class _OnlineCoursesCard extends StatelessWidget {
   const _OnlineCoursesCard();
 
-  Future<void> _open(BuildContext context) async {
+  Future<void> _openSite(BuildContext context) async {
     var ok = false;
     try {
       ok = await launchUrl(Uri.parse('https://www.mindluster.com'), mode: LaunchMode.externalApplication);
@@ -145,34 +147,47 @@ class _OnlineCoursesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tap(
-      onTap: () => _open(context),
-      semanticLabel: 'Ouvrir les cours gratuits en ligne',
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: BarroColors.greenDeep,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.school_outlined, color: Colors.white, size: 32),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Cours gratuits en ligne', style: display(16, color: Colors.white)),
-                  const SizedBox(height: 2),
-                  Text('Plus de cours sur Mindluster, avec certificats gratuits.',
-                      style: body(12, color: BarroColors.greenMid, height: 1.35)),
-                ],
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Tap(
+          onTap: () => Navigator.of(context).push(barroRoute(const BibliothequeScreen())),
+          semanticLabel: 'Ouvrir la bibliothèque de formations',
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: BarroColors.greenDeep,
+              borderRadius: BorderRadius.circular(20),
             ),
-            const Icon(Icons.open_in_new, color: Colors.white, size: 20),
-          ],
+            child: Row(
+              children: [
+                const Icon(Icons.video_library_outlined, color: Colors.white, size: 32),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Bibliothèque de formations', style: display(16, color: Colors.white)),
+                      const SizedBox(height: 2),
+                      Text('Des centaines de cours vidéo en français, avec Mindluster.',
+                          style: body(12, color: BarroColors.greenMid, height: 1.35)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: Colors.white, size: 24),
+              ],
+            ),
+          ),
         ),
-      ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: () => _openSite(context),
+            icon: const Icon(Icons.open_in_new, size: 16),
+            label: const Text('Site Mindluster et certificats'),
+          ),
+        ),
+      ],
     );
   }
 }
