@@ -1,0 +1,29 @@
+name: Générer les images pilotes (Cloudflare gratuit)
+
+on:
+  workflow_dispatch:
+    inputs:
+      modele:
+        description: Modèle Cloudflare d'images
+        default: '@cf/black-forest-labs/flux-1-schnell'
+      versions:
+        description: Nombre de versions par image
+        default: '4'
+
+jobs:
+  generer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Générer
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          MODELE: ${{ inputs.modele }}
+          VERSIONS: ${{ inputs.versions }}
+        run: python3 scripts/generer_cf.py scripts/consignes_pilote.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: images-pilotes-cloudflare
+          path: sortie/
+          retention-days: 7

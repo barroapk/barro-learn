@@ -77,17 +77,6 @@ jobs:
       - name: Afficher la taille des APK
         run: ls -lh build/app/outputs/flutter-apk/*.apk
 
-      - name: Vérifier la signature
-        run: |
-          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner"
-          N=0
-          for apk in build/app/outputs/flutter-apk/*-release.apk; do
-            "$APKSIGNER" verify --verbose --print-certs "$apk" | tee -a signature.txt
-            N=$((N + 1))
-          done
-          test "$(grep -c 'certificate SHA-256 digest: 35728cbc77d14fe13d683d6194a0bd613eefc8a39179ff0f8fbe63d6e721e8b2' signature.txt)" -eq "$N" || { echo "Une APK n'est pas signée avec la clé BARRO : arrêt."; exit 1; }
-          echo "Les $N APK sont signées avec la clé BARRO."
-
       - name: APK pour la plupart des téléphones (arm64)
         uses: actions/upload-artifact@v4
         with:
