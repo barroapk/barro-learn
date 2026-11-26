@@ -158,7 +158,7 @@ class ImageVue extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: e.url == null
             ? Container(color: const Color(0xFFEEEEEE), child: const Center(child: Icon(Icons.image_not_supported)))
-            : Image.network(e.url!, fit: BoxFit.cover, width: double.infinity,
+            : Image.network(e.url!, fit: BoxFit.contain, width: double.infinity,
                 errorBuilder: (_, __, ___) => Container(color: const Color(0xFFEEEEEE))),
       ),
     );

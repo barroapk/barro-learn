@@ -83,14 +83,15 @@ Future<ScenePrete> preparerScene(String asset, String voix) async {
     final reperes = donnees['reperes'] as List;
     final mots = [for (final r in reperes) normaliser(r['texte'] as String)];
     for (final cmd in seg['commandes'] as List) {
-      var t = 0;
+      var t = -1;
       final ancre = cmd['ancre'];
+      if (ancre == null) t = 0;
       if (ancre != null) {
         final cible = normaliser(ancre['mot'] as String);
         final n = (ancre['n'] ?? 1) as int;
         var vu = 0;
         for (var i = 0; i < mots.length; i++) {
-          if (mots[i] == cible || mots[i].startsWith(cible)) {
+          if (mots[i] == cible) {
             vu++;
             if (vu == n) {
               t = reperes[i]['debut_ms'] as int;
@@ -99,6 +100,7 @@ Future<ScenePrete> preparerScene(String asset, String voix) async {
           }
         }
       }
+      if (t < 0) throw Exception('Ancre introuvable : ${ancre['mot']} (segment ${seg['id']})');
       evenements.add(Evenement(debut + t, ordre++, Map<String, dynamic>.from(cmd as Map)));
     }
     final duree = donnees['duree_ms'] as int;
