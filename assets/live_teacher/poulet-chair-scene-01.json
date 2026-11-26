@@ -1,0 +1,46 @@
+{
+ "format": 1,
+ "scene": "poulet-chair-scene-01",
+ "titre": "Qu'est-ce qu'un poulet de chair ?",
+ "version": 1,
+ "voix_possibles": ["henri", "vivienne"],
+ "zones": ["titre", "gauche", "droite", "bas"],
+ "segments": [
+  {"id": "v1", "texte": "Bonjour et bienvenue ! Aujourd'hui, nous allons découvrir ensemble le poulet de chair.",
+   "commandes": [
+    {"type": "board.write", "id": "titre", "zone": "titre", "ancre": {"mot": "bonjour"}, "texte": "LE POULET DE CHAIR", "style": "titre", "animation": "ecriture_manuscrite"}]},
+  {"id": "v2", "texte": "Mais au fait, qu'est-ce qu'un poulet de chair ?",
+   "commandes": [
+    {"type": "media.show", "id": "img-poulet", "zone": "gauche", "ancre": {"mot": "poulet"}, "media": "img:elevage:poulet-chair-6-semaines", "animation": "apparition_douce"}]},
+  {"id": "v3", "texte": "C'est un poulet d'une souche spéciale. Une souche, c'est un type de poulet choisi pour une qualité précise : grandir vite.",
+   "commandes": [
+    {"type": "board.write", "id": "notion-souche", "zone": "droite", "ancre": {"mot": "souche"}, "texte": "SOUCHE", "style": "notion", "animation": "ecriture_manuscrite"},
+    {"type": "board.write", "id": "def-souche", "zone": "droite", "ancre": {"mot": "choisi"}, "texte": "= choisie pour grandir vite", "style": "explication", "animation": "ecriture_manuscrite"}]},
+  {"id": "v4", "texte": "Grandir vite, c'est vraiment ce qui distingue le poulet de chair.",
+   "commandes": [
+    {"type": "board.underline", "ancre": {"mot": "vite"}, "cible": "def-souche"}]},
+  {"id": "v5", "texte": "Regarde : au départ, c'est un petit poussin d'un jour. Et en six semaines environ, il est déjà prêt pour la vente.",
+   "commandes": [
+    {"type": "media.show", "id": "img-poussin", "zone": "gauche", "disposition": "a_cote_de:img-poulet", "ancre": {"mot": "poussin"}, "media": "img:elevage:poussin-chair-1-jour", "animation": "apparition_douce"},
+    {"type": "board.write", "id": "frise-j1", "zone": "bas", "ancre": {"mot": "jour"}, "texte": "JOUR 1", "style": "repere"},
+    {"type": "board.draw", "id": "frise-fleche", "zone": "bas", "ancre": {"mot": "six"}, "forme": "fleche", "direction": "droite"},
+    {"type": "board.write", "id": "frise-6s", "zone": "bas", "ancre": {"mot": "semaines"}, "texte": "≈ 6 SEMAINES", "style": "repere"},
+    {"type": "board.write", "id": "frise-vente", "zone": "bas", "ancre": {"mot": "vente"}, "texte": "VENTE", "style": "conclusion"}]},
+  {"id": "v6", "texte": "Retiens bien ce petit mot : environ. Six semaines, c'est un repère, pas une règle fixe.",
+   "commandes": [
+    {"type": "board.circle", "ancre": {"mot": "environ"}, "cible": "frise-6s", "partie": "≈"},
+    {"type": "board.write", "id": "note-repere", "zone": "bas", "ancre": {"mot": "repère"}, "texte": "un repère, pas une règle", "style": "note"}]},
+  {"id": "v7", "texte": "Tu comprends maintenant pourquoi c'est important en élevage : on choisit un poulet qui grandit vite, pour pouvoir le vendre vers six semaines.",
+   "commandes": [
+    {"type": "board.highlight", "ancre": {"mot": "vite"}, "cible": "def-souche"},
+    {"type": "board.highlight", "ancre": {"mot": "vendre"}, "cible": ["frise-j1", "frise-fleche", "frise-6s", "frise-vente"]}]},
+  {"id": "v8", "texte": "Une dernière chose. Les poulets élevés ensemble forment une bande. Alors, une question pour toi : combien de bandes pourrais-tu faire en une année ? Garde-la en tête, nous y répondrons plus tard.",
+   "pause_apres_ms": 2000,
+   "commandes": [
+    {"type": "board.erase", "ancre": {"mot": "dernière"}, "cible": "note-repere"},
+    {"type": "board.write", "id": "notion-bande", "zone": "droite", "ancre": {"mot": "bande"}, "texte": "BANDE = poulets élevés ensemble", "style": "notion", "animation": "ecriture_manuscrite"},
+    {"type": "board.write", "id": "question", "zone": "bas", "ancre": {"mot": "question"}, "texte": "Combien de bandes par an ?", "style": "question", "animation": "ecriture_manuscrite"}]}
+ ],
+ "controle": {"pause_tactile": true, "synchronisation": "reperes_mot", "conserver_tableau": true},
+ "sources": ["poulet-chair:lecon-1"]
+}
