@@ -78,9 +78,9 @@ TextStyle _style(String s) {
   const f = GoogleFonts.patrickHand;
   switch (s) {
     case 'titre':
-      return f(fontSize: 28, color: const Color(0xFF0D3B66), fontWeight: FontWeight.bold);
+      return f(fontSize: 26, color: const Color(0xFF0D3B66), fontWeight: FontWeight.bold);
     case 'notion':
-      return f(fontSize: 24, color: const Color(0xFFD1495B), fontWeight: FontWeight.bold);
+      return f(fontSize: 22, color: const Color(0xFFD1495B), fontWeight: FontWeight.bold);
     case 'explication':
       return f(fontSize: 20, color: const Color(0xFF1B6CA8));
     case 'repere':
@@ -118,7 +118,7 @@ class LiveBoard extends StatelessWidget {
         const SizedBox(height: 12),
         if (images.isNotEmpty)
           SizedBox(
-            height: 150,
+            height: 120,
             child: Row(children: [
               for (final e in images)
                 Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: ImageVue(e: e, t: t))),
@@ -184,6 +184,12 @@ class ElementVue extends StatelessWidget {
       w = e.animer
           ? ClipRect(child: Align(alignment: Alignment.centerLeft, widthFactor: apparition, child: txt))
           : Opacity(opacity: apparition, child: txt);
+      if (e.animer && apparition > 0 && apparition < 1) {
+        w = Stack(clipBehavior: Clip.none, children: [
+          w,
+          const Positioned(right: -16, bottom: 0, child: Icon(Icons.edit, size: 20, color: Color(0xFF0D3B66))),
+        ]);
+      }
       w = Container(
         decoration: BoxDecoration(
           color: const Color(0xFFFFEB3B).withValues(alpha: 0.55 * prog(t, e.tSurligne, 400)),

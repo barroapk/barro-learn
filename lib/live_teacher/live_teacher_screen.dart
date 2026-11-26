@@ -62,10 +62,12 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
     final s = _scene;
     if (s == null) return;
     if (_player.processingState == ProcessingState.completed) {
-      if (!_fini) setState(() {
-        _fini = true;
-        _t = s.dureeMs + 60000;
-      });
+      if (!_fini) {
+        setState(() {
+          _fini = true;
+          _t = s.dureeMs + 60000;
+        });
+      }
       return;
     }
     final i = (_player.currentIndex ?? 0).clamp(0, s.segments.length - 1);
@@ -74,9 +76,31 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
   }
 
   void _basculer() {
-    if (_scene == null || _fini) return;
     _player.playing ? _player.pause() : _player.play();
     setState(() {});
+  }
+
+  /// Comme un statut WhatsApp : gauche = revenir, droite = suivant, centre = pause.
+  void _toucher(TapUpDetails d) {
+    if (_scene == null || _fini) return;
+    final x = d.globalPosition.dx / MediaQuery.of(context).size.width;
+    if (x < 0.25) {
+      _sauter(-1);
+    } else if (x > 0.75) {
+      _sauter(1);
+    } else {
+      _basculer();
+    }
+  }
+
+  Future<void> _sauter(int sens) async {
+    final s = _scene!;
+    final i = _player.currentIndex ?? 0;
+    var cible = i + sens;
+    if (sens < 0 && _player.position.inMilliseconds > 1500) cible = i;
+    if (cible < 0) cible = 0;
+    if (cible >= s.segments.length) return;
+    await _player.seek(Duration.zero, index: cible);
   }
 
   Future<void> _recommencer() async {
@@ -135,6 +159,12 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
               icon: const Icon(Icons.record_voice_over),
               label: const Text('Vivienne'),
             ),
+            const SizedBox(height: 20),
+            const Text(
+              'Pendant le cours : touche le centre pour mettre en pause,\nla gauche pour revenir, la droite pour avancer.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black54, fontSize: 13),
+            ),
           ],
         ]),
       ),
@@ -145,7 +175,7 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
     final etat = etatTableau(s, _t);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _basculer,
+      onTapUp: _toucher,
       child: Stack(children: [
         Column(children: [
           Padding(
@@ -175,6 +205,18 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
             ]),
           ),
           Expanded(child: LiveBoard(elements: etat, t: _t)),
+          if (_fini)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Column(children: [
+                const Text('Fin de la scène', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 8, children: [
+                  FilledButton(onPressed: _recommencer, child: const Text('Recommencer')),
+                  OutlinedButton(onPressed: _changerVoix, child: const Text('Changer de voix')),
+                ]),
+              ]),
+            ),
           const SizedBox(height: 12),
         ]),
         if (!_player.playing && !_fini)
@@ -185,27 +227,10 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
                 child: Column(mainAxisSize: MainAxisSize.min, children: const [
                   Icon(Icons.pause_circle_filled, size: 72, color: Colors.white),
                   SizedBox(height: 8),
-                  Text('En pause — touche pour reprendre', style: TextStyle(color: Colors.white, fontSize: 16)),
-                ]),
-              ),
-            ),
-          ),
-        if (_fini)
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 24,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Text('Fin de la scène', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    FilledButton(onPressed: _recommencer, child: const Text('Recommencer')),
-                    const SizedBox(width: 8),
-                    OutlinedButton(onPressed: _changerVoix, child: const Text('Changer de voix')),
-                  ]),
+                  Text('En pause — touche le centre pour reprendre',
+                      style: TextStyle(color: Colors.white, fontSize: 16)),
+                  SizedBox(height: 6),
+                  Text('◀ revenir          avancer ▶', style: TextStyle(color: Colors.white70, fontSize: 14)),
                 ]),
               ),
             ),
