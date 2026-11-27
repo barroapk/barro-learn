@@ -16,7 +16,10 @@ class ElementTableau {
     this.style = 'note',
     this.url,
     this.animer = false,
+    this.couleur = 'noir',
   });
+  final String couleur;
+  String marque = 'rouge';
   final String id;
   final String genre;
   final String zone;
@@ -46,20 +49,25 @@ Map<String, ElementTableau> etatTableau(ScenePrete s, int t) {
         els[id!] = ElementTableau(
             id: id, genre: 'texte', zone: (c['zone'] ?? 'droite') as String, tApparition: e.tMs,
             texte: c['texte'] as String?, style: (c['style'] ?? 'note') as String,
-            animer: c['animation'] == 'ecriture_manuscrite');
+            animer: c['animation'] == 'ecriture_manuscrite',
+            couleur: (c['couleur'] ?? couleurParDefaut[c['style'] ?? 'note'] ?? 'noir') as String);
       case 'media.show':
         els[id!] = ElementTableau(
             id: id, genre: 'image', zone: (c['zone'] ?? 'gauche') as String, tApparition: e.tMs,
             url: s.images[c['media']]);
       case 'board.draw':
-        els[id!] = ElementTableau(id: id, genre: 'fleche', zone: (c['zone'] ?? 'bas') as String, tApparition: e.tMs);
+        els[id!] = ElementTableau(
+            id: id, genre: 'fleche', zone: (c['zone'] ?? 'bas') as String, tApparition: e.tMs,
+            couleur: (c['couleur'] ?? 'noir') as String);
       case 'board.underline':
         for (final x in _cibles(c['cible'])) {
           els[x]?.tSouligne ??= e.tMs;
+          if (c['couleur'] != null) els[x]?.marque = c['couleur'] as String;
         }
       case 'board.circle':
         for (final x in _cibles(c['cible'])) {
           els[x]?.tCercle ??= e.tMs;
+          if (c['couleur'] != null) els[x]?.marque = c['couleur'] as String;
         }
       case 'board.highlight':
         for (final x in _cibles(c['cible'])) {
@@ -74,23 +82,41 @@ Map<String, ElementTableau> etatTableau(ScenePrete s, int t) {
   return els;
 }
 
-TextStyle styleTableau(String s) {
+const couleurParDefaut = {
+  'titre': 'bleu_fonce', 'notion': 'rouge', 'explication': 'bleu', 'repere': 'noir',
+  'conclusion': 'vert', 'question': 'violet', 'note': 'gris',
+};
+const _encres = {
+  'bleu_fonce': Color(0xFF0D3B66), 'rouge': Color(0xFFD1495B), 'bleu': Color(0xFF1B6CA8),
+  'noir': Color(0xFF222222), 'vert': Color(0xFF2E7D32), 'violet': Color(0xFF6A1B9A), 'gris': Color(0xFF555555),
+};
+Color encre(String c) => _encres[c] ?? const Color(0xFF222222);
+
+/// Le feutre dans la main a la couleur de l'encre.
+String stylo(String c) {
+  if (c == 'bleu') return _mainStylo;
+  if (c == 'gris' || !_encres.containsKey(c)) return 'assets/live_teacher/stylo_noir.webp';
+  return 'assets/live_teacher/stylo_$c.webp';
+}
+
+TextStyle styleTableau(String s, [String? couleur]) {
   const f = GoogleFonts.patrickHand;
+  final c = encre(couleur ?? couleurParDefaut[s] ?? 'noir');
   switch (s) {
     case 'titre':
-      return f(fontSize: 26, color: const Color(0xFF0D3B66), fontWeight: FontWeight.bold);
+      return f(fontSize: 26, color: c, fontWeight: FontWeight.bold);
     case 'notion':
-      return f(fontSize: 22, color: const Color(0xFFD1495B), fontWeight: FontWeight.bold);
+      return f(fontSize: 22, color: c, fontWeight: FontWeight.bold);
     case 'explication':
-      return f(fontSize: 20, color: const Color(0xFF1B6CA8));
+      return f(fontSize: 20, color: c);
     case 'repere':
-      return f(fontSize: 19, color: const Color(0xFF222222), fontWeight: FontWeight.bold);
+      return f(fontSize: 19, color: c, fontWeight: FontWeight.bold);
     case 'conclusion':
-      return f(fontSize: 20, color: const Color(0xFF2E7D32), fontWeight: FontWeight.bold);
+      return f(fontSize: 20, color: c, fontWeight: FontWeight.bold);
     case 'question':
-      return f(fontSize: 22, color: const Color(0xFF6A1B9A), fontWeight: FontWeight.bold);
+      return f(fontSize: 22, color: c, fontWeight: FontWeight.bold);
     default:
-      return f(fontSize: 17, color: const Color(0xFF555555), fontStyle: FontStyle.italic);
+      return f(fontSize: 17, color: c, fontStyle: FontStyle.italic);
   }
 }
 
@@ -142,10 +168,11 @@ class _Mesure {
 }
 
 class _Main {
-  _Main(this.id, this.point, this.brosse);
+  _Main(this.id, this.point, this.brosse, this.encre);
   final String id;
   final Offset point;
   final bool brosse;
+  final String encre;
 }
 
 Offset _pointeImage(double p, Size s) {
@@ -181,7 +208,7 @@ class _LiveBoardState extends State<LiveBoard> {
       final tailleImage = Size(images.isEmpty ? 0 : interieur / images.length - 8, _hauteurImage);
       final mesures = <String, _Mesure>{
         for (final e in widget.elements.values)
-          if (e.genre == 'texte') e.id: _Mesure(e.texte ?? '', styleTableau(e.style)),
+          if (e.genre == 'texte') e.id: _Mesure(e.texte ?? '', styleTableau(e.style, e.couleur)),
       };
       final main = _mainActive(t, mesures, tailleImage);
       return Stack(clipBehavior: Clip.none, children: [
@@ -232,7 +259,7 @@ class _LiveBoardState extends State<LiveBoard> {
               offset: main.point - (main.brosse ? _patinBrosse : _pointeStylo),
               child: IgnorePointer(
                 child: Image.asset(
-                  main.brosse ? _mainBrosse : _mainStylo,
+                  main.brosse ? _mainBrosse : stylo(main.encre),
                   width: main.brosse ? _largeurBrosse : _largeurStylo,
                   gaplessPlayback: true,
                 ),
@@ -243,14 +270,14 @@ class _LiveBoardState extends State<LiveBoard> {
     });
   }
 
-  /// Le geste en cours le plus récent décide où se trouve la main (ou s'il n'y a pas de main).
+  /// Le geste en cours le plus récent décide où se trouve la main et quel feutre elle tient.
   _Main? _mainActive(int t, Map<String, _Mesure> m, Size tailleImage) {
     _Main? meilleur;
     var debut = -1;
-    void proposer(String id, int t0, Offset p, bool brosse) {
+    void proposer(String id, int t0, Offset p, bool brosse, String couleur) {
       if (t0 >= debut) {
         debut = t0;
-        meilleur = _Main(id, p, brosse);
+        meilleur = _Main(id, p, brosse, couleur);
       }
     }
 
@@ -258,30 +285,31 @@ class _LiveBoardState extends State<LiveBoard> {
       final ef = prog(t, e.tEfface, dureeEfface);
       if (ef > 0 && ef < 1) {
         final b = e.genre == 'texte' ? m[e.id]!.boite : (e.genre == 'image' ? tailleImage : const Size(48, 24));
-        proposer(e.id, e.tEfface!, Offset(b.width * (0.5 + 0.45 * math.sin(ef * math.pi * 5)), b.height * ef), true);
+        proposer(e.id, e.tEfface!, Offset(b.width * (0.5 + 0.45 * math.sin(ef * math.pi * 5)), b.height * ef), true, 'noir');
         continue;
       }
       if (e.genre == 'texte') {
         final me = m[e.id]!;
         if (e.animer) {
           final p = prog(t, e.tApparition, dureeEcriture(e.texte));
-          if (p > 0 && p < 1) proposer(e.id, e.tApparition, me.pointe(p), false);
+          if (p > 0 && p < 1) proposer(e.id, e.tApparition, me.pointe(p), false, e.couleur);
         }
         final b = me.boite;
         final u = prog(t, e.tSouligne, dureeSouligne);
-        if (u > 0 && u < 1) proposer(e.id, e.tSouligne!, Offset(4 + (b.width - 8) * u, b.height - 2), false);
+        if (u > 0 && u < 1) proposer(e.id, e.tSouligne!, Offset(4 + (b.width - 8) * u, b.height - 2), false, e.marque);
         final c = prog(t, e.tCercle, dureeCercle);
         if (c > 0 && c < 1) {
           final a = -math.pi / 2 + 2 * math.pi * c;
           proposer(e.id, e.tCercle!,
-              Offset(b.width / 2 + (b.width / 2 + 2) * math.cos(a), b.height / 2 + (b.height / 2 + 2) * math.sin(a)), false);
+              Offset(b.width / 2 + (b.width / 2 + 2) * math.cos(a), b.height / 2 + (b.height / 2 + 2) * math.sin(a)),
+              false, e.marque);
         }
       } else if (e.genre == 'image') {
         final p = prog(t, e.tApparition, dureeImage);
-        if (p > 0 && p < 1) proposer(e.id, e.tApparition, _pointeImage(p, tailleImage), false);
+        if (p > 0 && p < 1) proposer(e.id, e.tApparition, _pointeImage(p, tailleImage), false, 'noir');
       } else if (e.genre == 'fleche') {
         final p = prog(t, e.tApparition, dureeFleche);
-        if (p > 0 && p < 1) proposer(e.id, e.tApparition, Offset(4 + 40 * p, 12), false);
+        if (p > 0 && p < 1) proposer(e.id, e.tApparition, Offset(4 + 40 * p, 12), false, e.couleur);
       }
     }
     return meilleur;
@@ -317,7 +345,7 @@ class _LiveBoardState extends State<LiveBoard> {
     if (visible <= 0) return const SizedBox.shrink();
     Widget boite;
     if (e.genre == 'fleche') {
-      boite = CustomPaint(size: const Size(48, 24), painter: _Fleche(prog(t, e.tApparition, dureeFleche)));
+      boite = CustomPaint(size: const Size(48, 24), painter: _Fleche(prog(t, e.tApparition, dureeFleche), encre(e.couleur)));
     } else {
       final me = m[e.id]!;
       final p = e.animer ? prog(t, e.tApparition, dureeEcriture(e.texte)) : 1.0;
@@ -328,7 +356,7 @@ class _LiveBoardState extends State<LiveBoard> {
         height: me.hauteur,
         child: ClipRect(
           clipper: _ClipGauche(revele),
-          child: Text(e.texte ?? '', style: styleTableau(e.style), maxLines: 1, softWrap: false,
+          child: Text(e.texte ?? '', style: styleTableau(e.style, e.couleur), maxLines: 1, softWrap: false,
               textScaler: TextScaler.noScaling),
         ),
       );
@@ -338,7 +366,7 @@ class _LiveBoardState extends State<LiveBoard> {
           borderRadius: BorderRadius.circular(6),
         ),
         child: CustomPaint(
-          foregroundPainter: _Marques(prog(t, e.tSouligne, dureeSouligne), prog(t, e.tCercle, dureeCercle)),
+          foregroundPainter: _Marques(prog(t, e.tSouligne, dureeSouligne), prog(t, e.tCercle, dureeCercle), encre(e.marque)),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Opacity(opacity: opacite, child: texte),
@@ -397,14 +425,15 @@ class _ClipBandes extends CustomClipper<Path> {
 }
 
 class _Marques extends CustomPainter {
-  _Marques(this.souligne, this.cercle);
+  _Marques(this.souligne, this.cercle, this.couleur);
   final double souligne;
   final double cercle;
+  final Color couleur;
 
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()
-      ..color = const Color(0xFFE53935)
+      ..color = couleur
       ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -421,13 +450,14 @@ class _Marques extends CustomPainter {
 }
 
 class _Fleche extends CustomPainter {
-  _Fleche(this.p);
+  _Fleche(this.p, this.couleur);
   final double p;
+  final Color couleur;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF222222)
+      ..color = couleur
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
     final y = size.height / 2;
