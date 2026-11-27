@@ -3,12 +3,13 @@ import 'dart:io';
 import 'dart:ui' show Offset;
 
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Moteur Live Teacher : relie la scène, les voix (barro-voix) et les images (barro-images).
 const cdnVoix = 'https://cdn.jsdelivr.net/gh/barroapk/barro-voix@main';
 const cdnImages = 'https://cdn.jsdelivr.net/gh/barroapk/barro-images@main';
 
-Future<dynamic> lireJsonWeb(String url) async {
+Future<String> _telecharger(String url) async {
   final client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
   try {
     final req = await client.getUrl(Uri.parse(url));
@@ -16,10 +17,28 @@ Future<dynamic> lireJsonWeb(String url) async {
     if (rep.statusCode != 200) {
       throw Exception('Téléchargement impossible (${rep.statusCode})');
     }
-    return jsonDecode(await rep.transform(utf8.decoder).join());
+    return await rep.transform(utf8.decoder).join();
   } finally {
     client.close();
   }
+}
+
+/// Lecture avec mémoire sur le téléphone.
+/// immuable = fichier versionné (ne change jamais) : jamais re-téléchargé.
+/// Sinon (catalogues) : ouvert depuis la mémoire, mis à jour en arrière-plan pour la fois suivante.
+Future<dynamic> lireJsonWeb(String url, {bool immuable = false}) async {
+  final prefs = await SharedPreferences.getInstance();
+  final cle = 'cache:$url';
+  final cache = prefs.getString(cle);
+  if (cache != null) {
+    if (!immuable) {
+      _telecharger(url).then((t) => prefs.setString(cle, t)).catchError((_) => false);
+    }
+    return jsonDecode(cache);
+  }
+  final texte = await _telecharger(url);
+  await prefs.setString(cle, texte);
+  return jsonDecode(texte);
 }
 
 /// Même normalisation que le vérificateur d'ancres : minuscules, sans accents ni ponctuation.
@@ -63,8 +82,9 @@ class ScenePrete {
 
 Future<ScenePrete> preparerScene(String asset, String voix) async {
   final scene = jsonDecode(await rootBundle.loadString(asset)) as Map<String, dynamic>;
-  final catVoix = (await lireJsonWeb('$cdnVoix/catalogue.json')) as List;
-  final catImages = (await lireJsonWeb('$cdnImages/catalogue.json')) as List;
+  final cats = await Future.wait([lireJsonWeb('$cdnVoix/catalogue.json'), lireJsonWeb('$cdnImages/catalogue.json')]);
+  final catVoix = cats[0] as List;
+  final catImages = cats[1] as List;
   final images = <String, String>{};
   for (final c in catImages) {
     if (c['actif'] == true) images[c['id'] as String] = c['url'] as String;
@@ -73,7 +93,9 @@ Future<ScenePrete> preparerScene(String asset, String voix) async {
   final evenements = <Evenement>[];
   var debut = 0;
   var ordre = 0;
-  for (final seg in scene['segments'] as List) {
+  final segs = scene['segments'] as List;
+  final entrees = <Map>[];
+  for (final seg in segs) {
     Map? entree;
     for (final c in catVoix) {
       if (c['scene'] == scene['scene'] && c['segment'] == seg['id'] && c['voix'] == voix && c['actif'] == true) {
@@ -81,7 +103,13 @@ Future<ScenePrete> preparerScene(String asset, String voix) async {
       }
     }
     if (entree == null) throw Exception('Voix introuvable pour le segment ${seg['id']}');
-    final donnees = await lireJsonWeb(entree['reperes'] as String) as Map;
+    entrees.add(entree);
+  }
+  final tousReperes = await Future.wait([for (final en in entrees) lireJsonWeb(en['reperes'] as String, immuable: true)]);
+  for (var si = 0; si < segs.length; si++) {
+    final seg = segs[si];
+    final entree = entrees[si];
+    final donnees = tousReperes[si] as Map;
     final reperes = donnees['reperes'] as List;
     final mots = [for (final r in reperes) normaliser(r['texte'] as String)];
     for (final cmd in seg['commandes'] as List) {
@@ -118,7 +146,7 @@ Future<ScenePrete> preparerScene(String asset, String voix) async {
     for (final cmd in seg['commandes'] as List) {
       final id = cmd['dessin'] as String?;
       if (id != null && images[id] != null && !dessins.containsKey(id)) {
-        dessins[id] = Dessin.fromJson(await lireJsonWeb(images[id]!) as Map);
+        dessins[id] = Dessin.fromJson(await lireJsonWeb(images[id]!, immuable: true) as Map);
       }
     }
   }

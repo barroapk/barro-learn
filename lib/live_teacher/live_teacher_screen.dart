@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'moteur.dart';
 import 'tableau.dart';
@@ -14,7 +18,7 @@ class LiveTeacherScreen extends StatefulWidget {
   State<LiveTeacherScreen> createState() => _LiveTeacherScreenState();
 }
 
-class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTickerProviderStateMixin {
+class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final _player = AudioPlayer();
   late final Ticker _ticker = createTicker((_) => _tick());
   ScenePrete? _scene;
@@ -25,10 +29,46 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
   int _t = 0;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _sauver();
     _ticker.dispose();
     _player.dispose();
     super.dispose();
+  }
+
+  /// Règle absolue : aucun son quand l'élève quitte l'écran ou l'application.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState etat) {
+    if (etat != AppLifecycleState.resumed && _player.playing) {
+      _player.pause();
+      _sauver();
+      if (mounted) setState(() {});
+    }
+  }
+
+  int _derniereSauvegarde = 0;
+
+  /// Sauvegarde du segment et de la position exacte (le tableau se reconstruit à partir du temps).
+  Future<void> _sauver() async {
+    final voix = _voix;
+    if (_scene == null || voix == null) return;
+    final fini = _fini;
+    final index = _player.currentIndex ?? 0;
+    final position = _player.position.inMilliseconds;
+    final prefs = await SharedPreferences.getInstance();
+    final cle = 'live_teacher:position:$sceneAsset:$voix';
+    if (fini) {
+      await prefs.remove(cle);
+    } else {
+      await prefs.setString(cle, jsonEncode({'index': index, 'position_ms': position}));
+    }
   }
 
   Future<void> _demarrer(String voix) async {
@@ -41,13 +81,20 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
     });
     try {
       final scene = await preparerScene(sceneAsset, voix);
+      if (!mounted) return;
       for (final url in scene.images.values.where((u) => !u.endsWith('.json'))) {
-        if (!mounted) return;
-        await precacheImage(NetworkImage(url), context);
+        precacheImage(NetworkImage(url), context);
       }
       await _player.setAudioSource(ConcatenatingAudioSource(
         children: [for (final s in scene.segments) AudioSource.uri(Uri.parse(s.audioUrl))],
       ));
+      final prefs = await SharedPreferences.getInstance();
+      final sauve = prefs.getString('live_teacher:position:$sceneAsset:$voix');
+      if (sauve != null) {
+        final p = jsonDecode(sauve) as Map;
+        final index = (p['index'] as int).clamp(0, scene.segments.length - 1);
+        await _player.seek(Duration(milliseconds: math.max(0, (p['position_ms'] as int) - 1500)), index: index);
+      }
       setState(() {
         _scene = scene;
         _chargement = false;
@@ -71,11 +118,16 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
           _fini = true;
           _t = s.dureeMs + 60000;
         });
+        _sauver();
       }
       return;
     }
     final i = (_player.currentIndex ?? 0).clamp(0, s.segments.length - 1);
     final t = s.segments[i].debutMs + _player.position.inMilliseconds;
+    if (_player.playing && (t - _derniereSauvegarde).abs() > 3000) {
+      _derniereSauvegarde = t;
+      _sauver();
+    }
     if (t != _t) setState(() => _t = t);
   }
 
