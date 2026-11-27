@@ -9,6 +9,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 const cdnVoix = 'https://cdn.jsdelivr.net/gh/barroapk/barro-voix@main';
 const cdnImages = 'https://cdn.jsdelivr.net/gh/barroapk/barro-images@main';
 
+/// Les catalogues changent souvent : lus directement sur GitHub (mémoire de 5 min),
+/// alors que jsDelivr peut garder une ancienne version jusqu'à 12 h.
+const catalogueVoix = 'https://raw.githubusercontent.com/barroapk/barro-voix/main/catalogue.json';
+const catalogueImages = 'https://raw.githubusercontent.com/barroapk/barro-images/main/catalogue.json';
+
 Future<String> _telecharger(String url) async {
   final client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
   try {
@@ -90,10 +95,10 @@ class ScenePrete {
 
 Future<ScenePrete> preparerScene(String asset, String voix) async {
   final scene = jsonDecode(await rootBundle.loadString(asset)) as Map<String, dynamic>;
-  final cats = await Future.wait([lireJsonWeb('$cdnVoix/catalogue.json'), lireJsonWeb('$cdnImages/catalogue.json')]);
+  final cats = await Future.wait([lireJsonWeb(catalogueVoix), lireJsonWeb(catalogueImages)]);
   var catVoix = cats[0] as List;
   if (!catVoix.any((c) => c['scene'] == scene['scene'] && c['voix'] == voix)) {
-    catVoix = await lireJsonFrais('$cdnVoix/catalogue.json') as List;
+    catVoix = await lireJsonFrais(catalogueVoix) as List;
   }
   final catImages = cats[1] as List;
   final images = <String, String>{};

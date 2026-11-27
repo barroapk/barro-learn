@@ -12,17 +12,18 @@ import 'moteur.dart';
 const quizAsset = 'assets/live_teacher/poulet-chair-scene-01-quiz.json';
 
 class _Question {
-  _Question(this.enonceId, this.enonce, this.choix, this.bonne, this.explications);
+  _Question(this.enonceId, this.enonce, this.choix, this.bonne, this.explications, this.pourquoi, this.retenir);
   final String enonceId;
   final String enonce;
   final List<String> choix;
   final String bonne;
   final List<String> explications;
+  final String pourquoi;
+  final List<String> retenir;
 }
 
 /// Mini-quiz de fin de scène : questions et réponses au hasard, félicitations variées,
-/// explications différentes du cours, sans répéter ce que l'élève vient d'entendre.
-/// Le déroulement ne dépend jamais du son : il continue même si un audio échoue.
+/// explications orales différentes du cours, et à l'écran seulement ce qu'il faut retenir.
 class QuizVue extends StatefulWidget {
   const QuizVue({super.key, required this.voix, required this.onFin});
   final String voix;
@@ -44,8 +45,8 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver {
   int _score = 0;
   int _jeton = 0;
   String? _choisi;
-  String? _retour;
-  String? _explication;
+  String? _felicitation;
+  String? _retenir;
   bool _parle = false;
   bool _pret = false;
   bool _termine = false;
@@ -81,9 +82,9 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver {
       for (final s in d['segments'] as List) {
         _textes[s['id'] as String] = s['texte'] as String;
       }
-      var cat = await lireJsonWeb('$cdnVoix/catalogue.json') as List;
+      var cat = await lireJsonWeb(catalogueVoix) as List;
       if (!cat.any((c) => c['scene'] == d['scene'] && c['voix'] == widget.voix)) {
-        cat = await lireJsonFrais('$cdnVoix/catalogue.json') as List;
+        cat = await lireJsonFrais(catalogueVoix) as List;
       }
       for (final c in cat) {
         if (c['scene'] == d['scene'] && c['voix'] == widget.voix && c['actif'] == true) {
@@ -107,8 +108,8 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver {
       _i = 0;
       _score = 0;
       _choisi = null;
-      _retour = null;
-      _explication = null;
+      _felicitation = null;
+      _retenir = null;
       _termine = false;
       _pret = true;
     });
@@ -120,7 +121,9 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver {
     final textes = List<String>.from(q['textes_enonces'] as List);
     final k = _hasard.nextInt(enonces.length);
     final choix = [q['bonne'] as String, ...List<String>.from(q['fausses'] as List)]..shuffle(_hasard);
-    return _Question(enonces[k], textes[k], choix, q['bonne'] as String, List<String>.from(q['explications'] as List));
+    return _Question(enonces[k], textes[k], choix, q['bonne'] as String,
+        List<String>.from(q['explications'] as List), (q['pourquoi'] ?? '') as String,
+        List<String>.from((q['retenir'] ?? []) as List));
   }
 
   /// Tire une phrase au hasard en évitant les 20 dernières entendues.
@@ -162,7 +165,7 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver {
       final f = _tirer(_quiz['felicitations']);
       setState(() {
         _choisi = r;
-        _retour = _textes[f];
+        _felicitation = _textes[f];
       });
       final debut = DateTime.now();
       await _jouer([f]);
@@ -172,10 +175,10 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver {
     } else {
       final e = _tirer(_quiz['erreurs']);
       final x = _tirer(q.explications);
+      final k = q.explications.indexOf(x);
       setState(() {
         _choisi = r;
-        _retour = _textes[e];
-        _explication = _textes[x];
+        _retenir = k >= 0 && k < q.retenir.length ? q.retenir[k] : null;
       });
       await _jouer([e, x]);
     }
@@ -183,15 +186,18 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver {
 
   void _suivante() {
     if (_i + 1 >= _questions.length) {
-      setState(() => _termine = true);
+      setState(() {
+        _termine = true;
+        _choisi = null;
+      });
       _jouer([_tirer(_quiz['fin'])]);
       return;
     }
     setState(() {
       _i++;
       _choisi = null;
-      _retour = null;
-      _explication = null;
+      _felicitation = null;
+      _retenir = null;
     });
     _jouer([_questions[_i].enonceId]);
   }
@@ -262,74 +268,121 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver {
   Widget _questionVue() {
     final q = _questions[_i];
     final juste = _choisi != null && _choisi == q.bonne;
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      _entete(),
-      const SizedBox(height: 14),
-      Expanded(
-        child: SingleChildScrollView(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(q.enonce,
-                style: GoogleFonts.patrickHand(fontSize: 26, color: const Color(0xFF0D3B66), fontWeight: FontWeight.bold)),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: () => _jouer([q.enonceId]),
-                icon: const Icon(Icons.replay, size: 18),
-                label: const Text('Réécouter la question'),
-              ),
-            ),
-            const SizedBox(height: 6),
-            for (var k = 0; k < q.choix.length; k++) _choixVue(q, k),
-            if (juste && _retour != null) _bandeau(_retour!, const Color(0xFFE8F5E9), const Color(0xFF2E7D32), Icons.celebration),
-            if (!juste && _explication != null)
-              Container(
-                margin: const EdgeInsets.only(top: 8),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E1),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFFFE082)),
+    final faux = _choisi != null && !juste;
+    return Stack(children: [
+      Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _entete(),
+        const SizedBox(height: 14),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text(q.enonce,
+                  style: GoogleFonts.patrickHand(fontSize: 26, color: const Color(0xFF0D3B66), fontWeight: FontWeight.bold)),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => _jouer([q.enonceId]),
+                  icon: const Icon(Icons.replay, size: 18),
+                  label: const Text('Réécouter la question'),
                 ),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Row(children: [
-                    Icon(Icons.lightbulb, color: Color(0xFFF9A825)),
-                    SizedBox(width: 6),
-                    Text('Explication', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ]),
-                  if (_retour != null) ...[
-                    const SizedBox(height: 6),
-                    Text(_retour!, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black54)),
-                  ],
-                  const SizedBox(height: 6),
-                  Text(_explication!, style: const TextStyle(fontSize: 16, height: 1.35)),
-                ]),
               ),
-          ]),
-        ),
-      ),
-      if (_choisi != null)
-        Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: FilledButton(
-            onPressed: _suivante,
-            child: Text(_i + 1 >= _questions.length
-                ? 'Voir mon résultat'
-                : (juste ? 'Question suivante' : "J'ai compris, question suivante")),
+              const SizedBox(height: 6),
+              for (var k = 0; k < q.choix.length; k++) _choixVue(q, k),
+              if (juste && _felicitation != null)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(14)),
+                  child: Row(children: [
+                    const Icon(Icons.celebration, color: Color(0xFF2E7D32)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(_felicitation!,
+                          style: const TextStyle(fontSize: 16, color: Color(0xFF2E7D32), fontWeight: FontWeight.w600)),
+                    ),
+                  ]),
+                ),
+            ]),
           ),
         ),
+        if (juste)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: FilledButton(
+              onPressed: _suivante,
+              child: Text(_i + 1 >= _questions.length ? 'Voir mon résultat' : 'Question suivante'),
+            ),
+          ),
+      ]),
+      if (faux) _carteErreur(q),
     ]);
   }
 
-  Widget _bandeau(String texte, Color fond, Color couleur, IconData icone) {
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: fond, borderRadius: BorderRadius.circular(14)),
-      child: Row(children: [
-        Icon(icone, color: couleur),
-        const SizedBox(width: 10),
-        Expanded(child: Text(texte, style: TextStyle(fontSize: 16, color: couleur, fontWeight: FontWeight.w600))),
-      ]),
+  /// Carte superposée : mauvaise réponse, bonne réponse, pourquoi, et la phrase à retenir.
+  /// Les mots parlés du professeur ne s'affichent pas : on lit seulement l'essentiel.
+  Widget _carteErreur(_Question q) {
+    return Positioned.fill(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutBack,
+        builder: (context, v, child) =>
+            Opacity(opacity: v.clamp(0.0, 1.0).toDouble(), child: Transform.scale(scale: 0.9 + 0.1 * v, child: child)),
+        child: Container(
+          color: const Color(0x99FFFFFF),
+          alignment: Alignment.center,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFD1495B), width: 1.5),
+                boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 18, offset: Offset(0, 6))],
+              ),
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                const Row(children: [
+                  Icon(Icons.cancel, color: Color(0xFFD1495B)),
+                  SizedBox(width: 8),
+                  Text('Mauvaise réponse',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFD1495B))),
+                ]),
+                const SizedBox(height: 14),
+                const Text('La bonne réponse était :', style: TextStyle(color: Colors.black54)),
+                const SizedBox(height: 4),
+                Text(q.bonne,
+                    style: GoogleFonts.patrickHand(fontSize: 25, color: const Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+                if (q.pourquoi.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  const Text('Pourquoi ?', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(q.pourquoi, style: const TextStyle(fontSize: 16, height: 1.35)),
+                ],
+                if (_retenir != null) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: const Color(0xFFFFF8E1), borderRadius: BorderRadius.circular(12)),
+                    child: Row(children: [
+                      const Icon(Icons.lightbulb, color: Color(0xFFF9A825)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(_retenir!,
+                            style: GoogleFonts.patrickHand(fontSize: 21, color: const Color(0xFF0D3B66))),
+                      ),
+                    ]),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: _suivante,
+                  child: Text(_i + 1 >= _questions.length ? 'Voir mon résultat' : "J'ai compris, question suivante"),
+                ),
+              ]),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
