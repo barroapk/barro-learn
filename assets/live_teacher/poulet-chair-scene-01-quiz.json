@@ -1,5 +1,5 @@
 {
- "format": 1,
+ "format": 2,
  "scene": "poulet-chair-scene-01-quiz",
  "pour_scene": "poulet-chair-scene-01",
  "segments": [
@@ -14,19 +14,34 @@
    "commandes": []
   },
   {
+   "id": "q1-n1",
+   "texte": "Tu as pensé à une race. Mais une race, c'est le type de poulet, par exemple le poulet de chair. La bande, elle, c'est un groupe de poulets.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "q1-n2",
+   "texte": "Tu as pensé au bâtiment. C'est logique, car la bande vit dans un bâtiment. Mais le mot bande désigne les poulets eux-mêmes, pas l'endroit où ils vivent.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
    "id": "q1-x1",
-   "texte": "Je t'explique autrement. Pense à une classe d'école : les élèves arrivent ensemble, avancent ensemble et finissent l'année ensemble. Une bande, c'est pareil pour les poulets : un groupe élevé ensemble, du début jusqu'à la vente.",
-   "commandes": []
+   "texte": "Regarde une classe d'école. Les élèves arrivent le même jour, apprennent ensemble, et terminent l'année ensemble. Personne ne dirait que la classe, c'est le bâtiment. La classe, ce sont les élèves. Une bande, c'est pareil : ce sont les poulets élevés ensemble, du premier jour jusqu'à la vente.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "q1-x2",
-   "texte": "Prenons un exemple. Un éleveur reçoit cinq cents poussins le même jour. Il les élève ensemble pendant environ six semaines, puis il les vend. Ces cinq cents poulets forment une bande.",
-   "commandes": []
+   "texte": "Imagine un éleveur à Koudougou. Lundi matin, il reçoit cinq cents poussins. Il les nourrit ensemble, les surveille ensemble, et six semaines plus tard, il les vend ensemble. Ces cinq cents poulets, c'est sa bande. Quand ils partent, il nettoie, puis il accueille une nouvelle bande.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "q1-x3",
-   "texte": "Retiens cette image : une bande, c'est une équipe. Tous les poulets de l'équipe entrent ensemble et sortent ensemble.",
-   "commandes": []
+   "texte": "Pense à une équipe de football. Les joueurs entrent sur le terrain ensemble, et ils sortent ensemble à la fin du match. Une bande de poulets fonctionne comme cette équipe : ils entrent ensemble dans l'élevage, et ils en sortent ensemble. Donc, une bande, c'est un groupe.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "q2-e1",
@@ -39,19 +54,34 @@
    "commandes": []
   },
   {
+   "id": "q2-n1",
+   "texte": "Tu as pensé aux œufs. Mais les poules qui pondent beaucoup sont d'un autre type : on les appelle les pondeuses. Le poulet de chair, lui, est choisi pour sa viande.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "q2-n2",
+   "texte": "Tu as pensé à une longue vie. En fait, c'est presque l'inverse : on veut un poulet qui grandit si vite qu'il est prêt en quelques semaines.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
    "id": "q2-x1",
-   "texte": "Je t'explique autrement. Imagine deux variétés de maïs : l'une pousse vite, l'autre lentement. Si tu veux récolter tôt, tu choisis celle qui pousse vite. Pour le poulet de chair, c'est pareil : on choisit une souche qui grandit vite.",
-   "commandes": []
+   "texte": "Pense au maïs. Un paysan peut semer une variété qui pousse vite, ou une autre qui met beaucoup plus de temps. S'il veut récolter tôt, il choisit la variété rapide. L'éleveur fait exactement le même choix : il prend la souche qui grandit vite. C'est ça, le poulet de chair.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "q2-x2",
-   "texte": "Prenons un exemple concret. Un poulet de chair peut être vendu vers six semaines, alors qu'un poulet local met souvent plusieurs mois. Cette différence vient de la souche.",
-   "commandes": []
+   "texte": "Compare deux poulets du même âge. Le poulet de chair est déjà gros, et prêt pour la vente vers six semaines. Le poulet local, au même âge, est encore petit : il lui faut plusieurs mois. Cette différence ne vient pas de la chance. Elle vient de la souche.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "q2-x3",
-   "texte": "Retiens ceci : poulet de chair égale croissance rapide. La souche, c'est le choix de départ qui donne cette vitesse.",
-   "commandes": []
+   "texte": "Retiens une idée simple : on ne choisit pas une souche au hasard. On la choisit pour ce qu'elle sait bien faire. La pondeuse sait bien pondre. Le poulet de chair, lui, sait bien grandir, et vite.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "q3-e1",
@@ -64,19 +94,34 @@
    "commandes": []
   },
   {
+   "id": "q3-n1",
+   "texte": "Six mois, c'est plutôt le temps d'un poulet local. Le poulet de chair, lui, va beaucoup plus vite.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "q3-n2",
+   "texte": "Un an, c'est beaucoup trop long pour un poulet de chair. À cet âge, il aurait été vendu depuis longtemps.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
    "id": "q3-x1",
-   "texte": "Je t'explique autrement. Six semaines, c'est environ un mois et demi. C'est très court pour un animal qui commence comme un petit poussin d'un jour.",
-   "commandes": []
+   "texte": "Comptons ensemble. Une semaine, c'est sept jours. Six semaines, c'est quarante-deux jours, à peu près un mois et demi. En un mois et demi, le petit poussin d'un jour devient un poulet prêt à être vendu. C'est très rapide, et c'est tout l'intérêt du poulet de chair.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "q3-x2",
-   "texte": "Prenons un exemple. Si tes poussins arrivent au début de janvier, ils seront prêts vers la mi-février, soit environ six semaines plus tard.",
-   "commandes": []
+   "texte": "Prends un calendrier. Si tes poussins arrivent au début du mois de janvier, tu pourras les vendre vers la mi-février. Pas en juin, pas l'année suivante : seulement six semaines plus tard.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "q3-x3",
-   "texte": "Souviens-toi de la frise du tableau : jour un, puis environ six semaines, puis la vente.",
-   "commandes": []
+   "texte": "Rappelle-toi la flèche du tableau : jour un, environ six semaines, puis la vente. Trois étapes, et c'est tout. Le chemin est court, et c'est ce qui fait la force du poulet de chair.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "q4-e1",
@@ -89,19 +134,34 @@
    "commandes": []
   },
   {
+   "id": "q4-n1",
+   "texte": "Tu as fait le calcul : six fois sept, quarante-deux. Bien vu ! Mais le mot environ change tout : ce n'est pas un nombre exact.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "q4-n2",
+   "texte": "Six mois, c'est beaucoup trop long. Environ six semaines veut dire autour de six semaines, pas six mois.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
    "id": "q4-x1",
-   "texte": "Je t'explique autrement. Quand tu dis qu'un trajet dure environ une heure, il peut durer un peu moins ou un peu plus. Six semaines, c'est pareil : un repère, pas une règle fixe.",
-   "commandes": []
+   "texte": "Quand on te dit que le marché est à environ dix minutes de marche, tu peux arriver en huit minutes, ou en douze. Personne ne compte les secondes. Environ six semaines, c'est pareil : c'est un repère pour s'organiser, pas une règle fixe.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "q4-x2",
-   "texte": "Prenons un exemple. Selon l'alimentation et la chaleur, certains éleveurs vendent à cinq semaines, d'autres à sept. Six semaines reste le repère.",
-   "commandes": []
+   "texte": "Dans la réalité, tout dépend de l'élevage. Avec une bonne alimentation, certains poulets sont prêts en cinq semaines. Quand il fait très chaud, ils mangent moins, et grandissent un peu moins vite : il faut parfois sept semaines. Six semaines reste le repère, au milieu.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "q4-x3",
-   "texte": "Retiens le petit signe du tableau, celui qui ressemble à deux vagues : il veut dire environ.",
-   "commandes": []
+   "texte": "Retiens le petit signe du tableau, celui qui ressemble à deux vagues. Il veut dire environ. Chaque fois que tu le vois, pense : à peu près, pas exactement.",
+   "commandes": [],
+   "debit": "-8%"
   },
   {
    "id": "f1",
@@ -160,7 +220,7 @@
   },
   {
    "id": "r4",
-   "texte": "Hmm, pas cette fois. Je vais t'aider.",
+   "texte": "Ce n'est pas ça, mais je vais t'aider.",
    "commandes": []
   },
   {
@@ -201,22 +261,21 @@
      "Une race de poulet",
      "Le bâtiment de l'élevage"
     ],
+    "refutations": {
+     "Une race de poulet": "q1-n1",
+     "Le bâtiment de l'élevage": "q1-n2"
+    },
     "explications": [
      "q1-x1",
      "q1-x2",
      "q1-x3"
     ],
-    "textes_explications": [
-     "Je t'explique autrement. Pense à une classe d'école : les élèves arrivent ensemble, avancent ensemble et finissent l'année ensemble. Une bande, c'est pareil pour les poulets : un groupe élevé ensemble, du début jusqu'à la vente.",
-     "Prenons un exemple. Un éleveur reçoit cinq cents poussins le même jour. Il les élève ensemble pendant environ six semaines, puis il les vend. Ces cinq cents poulets forment une bande.",
-     "Retiens cette image : une bande, c'est une équipe. Tous les poulets de l'équipe entrent ensemble et sortent ensemble."
-    ],
-    "pourquoi": "Une bande, c'est un groupe de poulets élevés ensemble, du début jusqu'à la vente.",
     "retenir": [
-     "Bande = groupe élevé ensemble",
+     "Bande = les poulets, pas le bâtiment",
      "Même arrivée, même élevage, même vente",
      "Une bande = une équipe"
-    ]
+    ],
+    "pourquoi": "Une bande, c'est un groupe de poulets élevés ensemble, du début jusqu'à la vente."
    },
    {
     "id": "q2",
@@ -233,22 +292,21 @@
      "Elle pond beaucoup d'œufs",
      "Elle vit très longtemps"
     ],
+    "refutations": {
+     "Elle pond beaucoup d'œufs": "q2-n1",
+     "Elle vit très longtemps": "q2-n2"
+    },
     "explications": [
      "q2-x1",
      "q2-x2",
      "q2-x3"
     ],
-    "textes_explications": [
-     "Je t'explique autrement. Imagine deux variétés de maïs : l'une pousse vite, l'autre lentement. Si tu veux récolter tôt, tu choisis celle qui pousse vite. Pour le poulet de chair, c'est pareil : on choisit une souche qui grandit vite.",
-     "Prenons un exemple concret. Un poulet de chair peut être vendu vers six semaines, alors qu'un poulet local met souvent plusieurs mois. Cette différence vient de la souche.",
-     "Retiens ceci : poulet de chair égale croissance rapide. La souche, c'est le choix de départ qui donne cette vitesse."
-    ],
-    "pourquoi": "On choisit la souche de poulet de chair parce qu'elle grandit vite.",
     "retenir": [
      "On choisit la souche qui grandit vite",
-     "Poulet de chair : vente vers 6 semaines",
-     "Poulet de chair = croissance rapide"
-    ]
+     "Poulet de chair : prêt vers 6 semaines",
+     "Chaque souche a son talent : le poulet de chair grandit vite"
+    ],
+    "pourquoi": "On choisit la souche de poulet de chair parce qu'elle grandit vite."
    },
    {
     "id": "q3",
@@ -265,22 +323,21 @@
      "Vers six mois",
      "Vers un an"
     ],
+    "refutations": {
+     "Vers six mois": "q3-n1",
+     "Vers un an": "q3-n2"
+    },
     "explications": [
      "q3-x1",
      "q3-x2",
      "q3-x3"
     ],
-    "textes_explications": [
-     "Je t'explique autrement. Six semaines, c'est environ un mois et demi. C'est très court pour un animal qui commence comme un petit poussin d'un jour.",
-     "Prenons un exemple. Si tes poussins arrivent au début de janvier, ils seront prêts vers la mi-février, soit environ six semaines plus tard.",
-     "Souviens-toi de la frise du tableau : jour un, puis environ six semaines, puis la vente."
-    ],
-    "pourquoi": "Grâce à sa croissance rapide, le poulet de chair est souvent vendu vers six semaines.",
     "retenir": [
-     "6 semaines ≈ 1 mois et demi",
+     "6 semaines = 42 jours ≈ 1 mois et demi",
      "Arrivée début janvier → vente mi-février",
      "Jour 1 → ≈ 6 semaines → vente"
-    ]
+    ],
+    "pourquoi": "Grâce à sa croissance rapide, le poulet de chair est souvent vendu vers six semaines."
    },
    {
     "id": "q4",
@@ -297,22 +354,21 @@
      "Exactement quarante-deux jours",
      "Au moins six mois"
     ],
+    "refutations": {
+     "Exactement quarante-deux jours": "q4-n1",
+     "Au moins six mois": "q4-n2"
+    },
     "explications": [
      "q4-x1",
      "q4-x2",
      "q4-x3"
     ],
-    "textes_explications": [
-     "Je t'explique autrement. Quand tu dis qu'un trajet dure environ une heure, il peut durer un peu moins ou un peu plus. Six semaines, c'est pareil : un repère, pas une règle fixe.",
-     "Prenons un exemple. Selon l'alimentation et la chaleur, certains éleveurs vendent à cinq semaines, d'autres à sept. Six semaines reste le repère.",
-     "Retiens le petit signe du tableau, celui qui ressemble à deux vagues : il veut dire environ."
-    ],
-    "pourquoi": "« Environ » veut dire que six semaines est un repère, pas une durée fixe.",
     "retenir": [
-     "Environ = un peu plus ou un peu moins",
+     "Environ = un repère, pas une règle",
      "Entre 5 et 7 semaines selon l'élevage",
-     "≈ veut dire environ"
-    ]
+     "≈ veut dire environ : à peu près, pas exactement"
+    ],
+    "pourquoi": "« Environ » veut dire que six semaines est un repère, pas une durée fixe."
    }
   ],
   "felicitations": [

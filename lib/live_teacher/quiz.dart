@@ -12,7 +12,7 @@ import 'moteur.dart';
 const quizAsset = 'assets/live_teacher/poulet-chair-scene-01-quiz.json';
 
 class _Question {
-  _Question(this.enonceId, this.enonce, this.choix, this.bonne, this.explications, this.pourquoi, this.retenir);
+  _Question(this.enonceId, this.enonce, this.choix, this.bonne, this.explications, this.pourquoi, this.retenir, this.refutations);
   final String enonceId;
   final String enonce;
   final List<String> choix;
@@ -20,6 +20,7 @@ class _Question {
   final List<String> explications;
   final String pourquoi;
   final List<String> retenir;
+  final Map<String, String> refutations;
 }
 
 /// Mini-quiz de fin de scène : questions et réponses au hasard, félicitations variées,
@@ -123,7 +124,8 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver {
     final choix = [q['bonne'] as String, ...List<String>.from(q['fausses'] as List)]..shuffle(_hasard);
     return _Question(enonces[k], textes[k], choix, q['bonne'] as String,
         List<String>.from(q['explications'] as List), (q['pourquoi'] ?? '') as String,
-        List<String>.from((q['retenir'] ?? []) as List));
+        List<String>.from((q['retenir'] ?? []) as List),
+        Map<String, String>.from((q['refutations'] ?? {}) as Map));
   }
 
   /// Tire une phrase au hasard en évitant les 20 dernières entendues.
@@ -180,7 +182,8 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver {
         _choisi = r;
         _retenir = k >= 0 && k < q.retenir.length ? q.retenir[k] : null;
       });
-      await _jouer([e, x]);
+      final refut = q.refutations[r];
+      await _jouer([e, if (refut != null) refut, x]);
     }
   }
 
