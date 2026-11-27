@@ -242,6 +242,36 @@
    "id": "z2",
    "texte": "C'est fini pour ce quiz. Tu as bien travaillé !",
    "commandes": []
+  },
+  {
+   "id": "fin_parfait-1",
+   "texte": "Parfait ! Tu as tout juste. Bravo !",
+   "commandes": []
+  },
+  {
+   "id": "fin_parfait-2",
+   "texte": "C'est un sans-faute ! Je suis content de toi.",
+   "commandes": []
+  },
+  {
+   "id": "fin_moyen-1",
+   "texte": "C'est bien ! Regardons ensemble les petites erreurs.",
+   "commandes": []
+  },
+  {
+   "id": "fin_moyen-2",
+   "texte": "Bon travail ! Voyons la correction ensemble.",
+   "commandes": []
+  },
+  {
+   "id": "fin_faible-1",
+   "texte": "Ce n'est pas grave. On va revoir tout ça ensemble, pas à pas.",
+   "commandes": []
+  },
+  {
+   "id": "fin_faible-2",
+   "texte": "Pas de souci, c'est comme ça qu'on apprend. Voyons la correction ensemble.",
+   "commandes": []
   }
  ],
  "quiz": {
@@ -395,6 +425,18 @@
    "z1",
    "z2"
   ],
-  "questions_par_quiz": 3
+  "questions_par_quiz": 3,
+  "fin_parfait": [
+   "fin_parfait-1",
+   "fin_parfait-2"
+  ],
+  "fin_moyen": [
+   "fin_moyen-1",
+   "fin_moyen-2"
+  ],
+  "fin_faible": [
+   "fin_faible-1",
+   "fin_faible-2"
+  ]
  }
 }
