@@ -20,9 +20,13 @@ class ElementTableau {
     this.dureeEcriture = 1200,
     this.dessin,
     this.dureeDessin = 2000,
+    this.figure,
+    this.dureeFigure = 3000,
   });
   final String? dessin;
   final int dureeDessin;
+  final Map? figure;
+  final int dureeFigure;
   final String id;
   final String genre;
   final String zone;
@@ -91,6 +95,11 @@ Map<String, ElementTableau> etatTableau(ScenePrete s, int t) {
         els[id!] = ElementTableau(
             id: id, genre: 'fleche', zone: (c['zone'] ?? 'bas') as String, tApparition: e.tMs,
             couleur: (c['couleur'] ?? 'noir') as String);
+      case 'board.figure':
+        els[id!] = ElementTableau(
+            id: id, genre: 'figure', zone: (c['zone'] ?? 'centre') as String, tApparition: e.tMs,
+            figure: c['figure'] as Map?,
+            dureeFigure: math.max(1500, math.min(5000, ((c['_suivant'] as int?) ?? (e.tMs + 5000)) - e.tMs - 150)));
       case 'board.underline':
         for (final x in _cibles(c['cible'])) {
           els[x]?.tSouligne ??= e.tMs;
@@ -248,6 +257,7 @@ class LiveBoard extends StatefulWidget {
 
 class _LiveBoardState extends State<LiveBoard> {
   final _liens = <String, LayerLink>{};
+  Size _tailleFigure = Size.zero;
   LayerLink _lien(String id) => _liens.putIfAbsent(id, LayerLink.new);
 
   Iterable<ElementTableau> _zone(String z) => widget.elements.values.where((e) => e.zone == z);
@@ -260,6 +270,7 @@ class _LiveBoardState extends State<LiveBoard> {
       final interieur = c.maxWidth - 24 - 32;
       final n = math.max(images.length, widget.nbImages);
       final tailleImage = Size(n == 0 ? 0 : interieur / n - 8, _hauteurImage);
+      _tailleFigure = Size(interieur, 200);
       final mesures = <String, _Mesure>{
         for (final e in widget.elements.values)
           if (e.genre == 'texte') e.id: _Mesure(e.texte ?? '', styleTableau(e.style, e.couleur)),
@@ -291,7 +302,10 @@ class _LiveBoardState extends State<LiveBoard> {
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [for (final e in _zone('droite')) _vue(e, mesures, t)],
+                  children: [
+                    for (final e in _zone('droite')) _vue(e, mesures, t),
+                    for (final e in _zone('centre')) _figure(e, t, _tailleFigure),
+                  ],
                 ),
               ),
             ),
@@ -328,7 +342,9 @@ class _LiveBoardState extends State<LiveBoard> {
     final g = <_Geste>[];
     for (final e in widget.elements.values) {
       if (e.tEfface != null) {
-        final b = e.genre == 'texte' ? m[e.id]!.boite : (e.genre == 'image' ? tailleImage : const Size(48, 24));
+        final b = e.genre == 'texte'
+            ? m[e.id]!.boite
+            : (e.genre == 'image' ? tailleImage : (e.genre == 'figure' ? _tailleFigure : const Size(48, 24)));
         g.add(_Geste(e.id, e.tEfface!, dureeEfface, true, 'noir',
             (p) => Offset(b.width * (0.5 + 0.45 * math.sin(p * math.pi * 5)), b.height * p)));
       }
@@ -353,6 +369,9 @@ class _LiveBoardState extends State<LiveBoard> {
         } else {
           g.add(_Geste(e.id, e.tApparition, dureeImage, false, 'noir', (p) => _pointeImage(p, tailleImage)));
         }
+      } else if (e.genre == 'figure' && e.figure != null) {
+        final f = construireFigure(e.figure!, _tailleFigure);
+        g.add(_Geste(e.id, e.tApparition, e.dureeFigure, false, 'noir', f.pointe));
       } else if (e.genre == 'fleche') {
         g.add(_Geste(e.id, e.tApparition, dureeFleche, false, e.couleur, (p) => Offset(4 + 40 * p, 12)));
       }
@@ -390,6 +409,23 @@ class _LiveBoardState extends State<LiveBoard> {
       }
     }
     return meilleur;
+  }
+
+  Widget _figure(ElementTableau e, int t, Size s) {
+    final visible = 1 - prog(t, e.tEfface, dureeEfface);
+    if (visible <= 0 || e.figure == null) return const SizedBox.shrink();
+    final f = construireFigure(e.figure!, s);
+    return Opacity(
+      opacity: visible,
+      child: CompositedTransformTarget(
+        link: _lien(e.id),
+        child: SizedBox(
+          width: s.width,
+          height: s.height,
+          child: CustomPaint(painter: _PeintreFigure(f, prog(t, e.tApparition, e.dureeFigure))),
+        ),
+      ),
+    );
   }
 
   Widget _image(ElementTableau e, int t, Size s) {
@@ -586,4 +622,228 @@ class _Croquis extends CustomPainter {
 
   @override
   bool shouldRepaint(_Croquis old) => old.p != p || old.d != d;
+}
+
+// ---------------- Figures symboliques (réutilisables pour tous les cours) ----------------
+
+const _noirF = Color(0xFF222222);
+const _rougeF = Color(0xFFD1495B);
+const _vertF = Color(0xFF2E7D32);
+
+class _Trait {
+  _Trait(this.points, this.couleur);
+  final List<Offset> points;
+  final Color couleur;
+}
+
+class _Etiquette {
+  _Etiquette(this.texte, this.centre, this.seuil, this.couleur, [this.taille = 18]);
+  final String texte;
+  final Offset centre;
+  final double seuil;
+  final Color couleur;
+  final double taille;
+}
+
+/// Une figure = des traits ordonnés (que la main parcourt) + des étiquettes qui apparaissent au bon moment.
+class FigureTracee {
+  FigureTracee(this.traits, this.etiquettes) {
+    longueurs = [for (final t in traits) _longueur(t.points)];
+    total = longueurs.fold(0.0, (a, b) => a + b);
+  }
+  final List<_Trait> traits;
+  final List<_Etiquette> etiquettes;
+  late final List<double> longueurs;
+  late final double total;
+
+  static double _longueur(List<Offset> p) {
+    var s = 0.0;
+    for (var i = 1; i < p.length; i++) {
+      s += (p[i] - p[i - 1]).distance;
+    }
+    return s;
+  }
+
+  List<List<Offset>> partiel(double p) {
+    var reste = p.clamp(0.0, 1.0) * total;
+    final out = <List<Offset>>[];
+    for (var i = 0; i < traits.length; i++) {
+      final t = traits[i].points;
+      if (reste >= longueurs[i]) {
+        out.add(t);
+        reste -= longueurs[i];
+        continue;
+      }
+      final partie = <Offset>[t.first];
+      for (var j = 1; j < t.length && reste > 0; j++) {
+        final seg = (t[j] - t[j - 1]).distance;
+        if (reste >= seg) {
+          partie.add(t[j]);
+          reste -= seg;
+        } else {
+          partie.add(Offset.lerp(t[j - 1], t[j], reste / seg)!);
+          reste = 0;
+        }
+      }
+      out.add(partie);
+      break;
+    }
+    return out;
+  }
+
+  Offset pointe(double p) {
+    final parts = partiel(p);
+    if (parts.isEmpty) return traits.isEmpty ? Offset.zero : traits.first.points.first;
+    return parts.last.last;
+  }
+}
+
+List<Offset> _cercle(Offset c, double r, [int n = 24]) => [
+      for (var i = 0; i <= n; i++)
+        c + Offset(math.cos(-math.pi / 2 + 2 * math.pi * i / n) * r, math.sin(-math.pi / 2 + 2 * math.pi * i / n) * r)
+    ];
+
+List<Offset> _rectArrondi(Rect b, double k) {
+  final pts = <Offset>[];
+  void arc(Offset c, double a0) {
+    for (var i = 0; i <= 8; i++) {
+      final a = a0 + math.pi / 2 * i / 8;
+      pts.add(c + Offset(math.cos(a) * k, math.sin(a) * k));
+    }
+  }
+  arc(Offset(b.right - k, b.top + k), -math.pi / 2);
+  arc(Offset(b.right - k, b.bottom - k), 0);
+  arc(Offset(b.left + k, b.bottom - k), math.pi / 2);
+  arc(Offset(b.left + k, b.top + k), math.pi);
+  pts.add(pts.first);
+  return pts;
+}
+
+/// Une petite poule caricaturée : corps, tête, bec, œil, deux pattes.
+void _poule(List<_Trait> t, Offset c, double r, Color col) {
+  t.add(_Trait(_cercle(c, r), col));
+  final tete = c + Offset(r * 0.8, -r * 0.8);
+  t.add(_Trait(_cercle(tete, r * 0.42, 16), col));
+  t.add(_Trait([tete + Offset(r * 0.38, -r * 0.12), tete + Offset(r * 0.72, r * 0.04), tete + Offset(r * 0.38, r * 0.18)], col));
+  t.add(_Trait(_cercle(tete + Offset(r * 0.1, -r * 0.08), math.max(1.2, r * 0.06), 8), col));
+  t.add(_Trait([c + Offset(-r * 0.3, r * 0.95), c + Offset(-r * 0.35, r * 1.4)], col));
+  t.add(_Trait([c + Offset(r * 0.3, r * 0.95), c + Offset(r * 0.35, r * 1.4)], col));
+}
+
+FigureTracee construireFigure(Map spec, Size s) {
+  final w = s.width;
+  final h = s.height;
+  final traits = <_Trait>[];
+  final etiq = <_Etiquette>[];
+  switch (spec['type']) {
+    case 'groupe':
+      final n = ((spec['n'] ?? 10) as num).toInt().clamp(1, 15);
+      final cols = math.min(n, 5);
+      final rows = (n / cols).ceil();
+      final cw = w * 0.8 / cols;
+      final ch = h * 0.7 / rows;
+      final r = math.min(cw, ch) * 0.26;
+      for (var k = 0; k < n; k++) {
+        final c = Offset(w * 0.1 + cw * (k % cols + 0.5) - r * 0.25, h * 0.06 + ch * (k ~/ cols + 0.5) - r * 0.25);
+        _poule(traits, c, r, _noirF);
+      }
+      traits.add(_Trait(_rectArrondi(Rect.fromLTWH(w * 0.04, h * 0.01, w * 0.92, h * 0.76), 28), _rougeF));
+      if (spec['label'] != null) etiq.add(_Etiquette(spec['label'] as String, Offset(w / 2, h * 0.9), 0.96, _rougeF));
+    case 'comparaison':
+      final items = List<Map>.from((spec['items'] ?? []) as List);
+      final m = math.max(1, items.length);
+      for (var i = 0; i < items.length; i++) {
+        final taille = ((items[i]['taille'] ?? 1) as num).toDouble().clamp(0.3, 1.0);
+        final cx = w * (i + 0.5) / m;
+        final r = h * 0.2 * taille;
+        _poule(traits, Offset(cx - r * 0.25, h * 0.72 - r * 1.4), r, _noirF);
+        etiq.add(_Etiquette(items[i]['label'] as String, Offset(cx, h * 0.88), (i + 1) / m * 0.95, _noirF));
+      }
+    case 'frise':
+      final etapes = List<String>.from((spec['etapes'] ?? []) as List);
+      final k = etapes.length;
+      final y = h * 0.58;
+      double xi(int i) => k <= 1 ? w / 2 : w * (0.13 + 0.74 * i / (k - 1));
+      for (var i = 0; i < k; i++) {
+        traits.add(_Trait(_cercle(Offset(xi(i), y), 7, 12), _noirF));
+        etiq.add(_Etiquette(etapes[i], Offset(xi(i), y - 36), k <= 1 ? 0.5 : (i / (k - 1)) * 0.9 + 0.05,
+            i == k - 1 ? _vertF : _noirF));
+        if (i < k - 1) {
+          final a = Offset(xi(i) + 12, y);
+          final b = Offset(xi(i + 1) - 12, y);
+          traits.add(_Trait([a, b], _noirF));
+          traits.add(_Trait([b + const Offset(-10, -8), b, b + const Offset(-10, 8)], _noirF));
+        }
+      }
+    case 'intervalle':
+      final y = h * 0.6;
+      traits.add(_Trait([Offset(w * 0.06, y), Offset(w * 0.94, y)], _noirF));
+      for (final f in [0.25, 0.5, 0.75]) {
+        traits.add(_Trait([Offset(w * f, y - 8), Offset(w * f, y + 8)], _noirF));
+      }
+      traits.add(_Trait([Offset(w * 0.25, y - 14), Offset(w * 0.25, y - 36), Offset(w * 0.75, y - 36), Offset(w * 0.75, y - 14)], _rougeF));
+      traits.add(_Trait(_cercle(Offset(w * 0.5, y), 6, 12), _rougeF));
+      etiq.add(_Etiquette((spec['min'] ?? '') as String, Offset(w * 0.25, y + 30), 0.3, _noirF));
+      etiq.add(_Etiquette((spec['centre'] ?? '') as String, Offset(w * 0.5, y + 30), 0.3, _rougeF));
+      etiq.add(_Etiquette((spec['max'] ?? '') as String, Offset(w * 0.75, y + 30), 0.3, _noirF));
+      if (spec['label'] != null) etiq.add(_Etiquette(spec['label'] as String, Offset(w * 0.5, y - 58), 0.9, _rougeF));
+    case 'symbole':
+      final y = h * 0.4;
+      for (final dy in [-12.0, 12.0]) {
+        traits.add(_Trait([
+          for (var i = 0; i <= 30; i++) Offset(w * 0.32 + w * 0.36 * i / 30, y + dy + math.sin(i / 30 * 2 * math.pi) * 10)
+        ], _noirF));
+      }
+      final b = Rect.fromCenter(center: Offset(w / 2, y), width: w * 0.5, height: 90);
+      traits.add(_Trait([
+        for (var i = 0; i <= 48; i++)
+          b.center + Offset(math.cos(2 * math.pi * i / 48 - math.pi / 2) * b.width / 2, math.sin(2 * math.pi * i / 48 - math.pi / 2) * b.height / 2)
+      ], _rougeF));
+      if (spec['label'] != null) etiq.add(_Etiquette(spec['label'] as String, Offset(w / 2, h * 0.86), 0.9, _rougeF, 22));
+  }
+  return FigureTracee(traits, etiq);
+}
+
+class _PeintreFigure extends CustomPainter {
+  _PeintreFigure(this.f, this.p);
+  final FigureTracee f;
+  final double p;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (p <= 0) return;
+    final parts = f.partiel(p);
+    for (var i = 0; i < parts.length; i++) {
+      final pts = parts[i];
+      if (pts.length < 2) continue;
+      final paint = Paint()
+        ..color = f.traits[i].couleur
+        ..strokeWidth = 3
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+      final path = Path()..moveTo(pts.first.dx, pts.first.dy);
+      for (final q in pts.skip(1)) {
+        path.lineTo(q.dx, q.dy);
+      }
+      canvas.drawPath(path, paint);
+    }
+    for (final e in f.etiquettes) {
+      final o = ((p - e.seuil) / 0.04).clamp(0.0, 1.0).toDouble();
+      if (o <= 0) continue;
+      final tp = TextPainter(
+        text: TextSpan(
+          text: e.texte,
+          style: GoogleFonts.patrickHand(fontSize: e.taille, color: e.couleur.withValues(alpha: o), fontWeight: FontWeight.bold),
+        ),
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+        textScaler: TextScaler.noScaling,
+      )..layout(maxWidth: size.width);
+      tp.paint(canvas, e.centre - Offset(tp.width / 2, tp.height / 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PeintreFigure old) => true;
 }

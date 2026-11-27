@@ -15,7 +15,7 @@ const quizAsset = 'assets/live_teacher/poulet-chair-scene-01-quiz.json';
 
 class _Question {
   _Question(this.enonceId, this.enonce, this.choix, this.bonne, this.explications, this.pourquoi, this.retenir,
-      this.refutations);
+      this.refutations, this.figures);
   final String enonceId;
   final String enonce;
   final List<String> choix;
@@ -24,6 +24,7 @@ class _Question {
   final String pourquoi;
   final List<String> retenir;
   final Map<String, String> refutations;
+  final List<Map> figures;
 }
 
 enum _Mode { questions, resultat, revue, explication }
@@ -148,7 +149,8 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver, SingleTi
         List<String>.from(q['explications'] as List),
         (q['pourquoi'] ?? '') as String,
         List<String>.from((q['retenir'] ?? []) as List),
-        Map<String, String>.from((q['refutations'] ?? {}) as Map));
+        Map<String, String>.from((q['refutations'] ?? {}) as Map),
+        List<Map>.from((q['figures'] ?? []) as List));
   }
 
   /// Tire une phrase au hasard en évitant les 20 dernières entendues.
@@ -249,7 +251,8 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver, SingleTi
     final retenir = k >= 0 && k < q.retenir.length ? q.retenir[k] : q.pourquoi;
     setState(() {
       _mode = _Mode.explication;
-      _sceneExp = _construireScene(q, juste ? null : choisi, refut, x, retenir);
+      _sceneExp = _construireScene(
+          q, juste ? null : choisi, refut, x, retenir, k >= 0 && k < q.figures.length ? q.figures[k] : null);
       _expActuelle = x;
       _tExp = 0;
       _expFinie = false;
@@ -264,7 +267,7 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver, SingleTi
 
   /// Le tableau « caricature » l'explication : l'erreur s'écrit puis s'efface,
   /// la bonne réponse s'écrit en vert, l'essentiel s'écrit en rouge puis se souligne.
-  ScenePrete _construireScene(_Question q, String? faux, String? refut, String x, String retenir) {
+  ScenePrete _construireScene(_Question q, String? faux, String? refut, String x, String retenir, Map? figure) {
     final dr = refut == null ? 0 : (_durees[refut] ?? 3000);
     final dx = _durees[x] ?? 9000;
     final cmds = <Map<String, dynamic>>[
@@ -278,7 +281,9 @@ class _QuizVueState extends State<QuizVue> with WidgetsBindingObserver, SingleTi
       {'type': 'board.write', 'id': 'reponse', 'zone': 'droite', 'texte': q.bonne, 'style': 'conclusion',
         'animation': 'ecriture_manuscrite', '_t': dr + 500},
       {'type': 'board.write', 'id': 'retenir', 'zone': 'bas', 'texte': retenir, 'style': 'notion',
-        'animation': 'ecriture_manuscrite', '_t': dr + (dx * 0.5).round()},
+        'animation': 'ecriture_manuscrite', '_t': dr + (dx * 0.62).round()},
+      if (figure != null)
+        {'type': 'board.figure', 'id': 'figure', 'zone': 'centre', 'figure': figure, '_t': dr + 1800},
       {'type': 'board.underline', 'cible': 'retenir', '_t': dr + (dx * 0.88).round()},
     ];
     cmds.sort((a, b) => (a['_t'] as int).compareTo(b['_t'] as int));

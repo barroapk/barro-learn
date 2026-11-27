@@ -305,7 +305,24 @@
      "Même arrivée, même élevage, même vente",
      "Une bande = une équipe"
     ],
-    "pourquoi": "Une bande, c'est un groupe de poulets élevés ensemble, du début jusqu'à la vente."
+    "pourquoi": "Une bande, c'est un groupe de poulets élevés ensemble, du début jusqu'à la vente.",
+    "figures": [
+     {
+      "type": "groupe",
+      "n": 10,
+      "label": "10 poulets ensemble = 1 bande"
+     },
+     {
+      "type": "groupe",
+      "n": 12,
+      "label": "500 poussins le même jour = 1 bande"
+     },
+     {
+      "type": "groupe",
+      "n": 8,
+      "label": "une équipe = une bande"
+     }
+    ]
    },
    {
     "id": "q2",
@@ -336,7 +353,48 @@
      "Poulet de chair : prêt vers 6 semaines",
      "Chaque souche a son talent : le poulet de chair grandit vite"
     ],
-    "pourquoi": "On choisit la souche de poulet de chair parce qu'elle grandit vite."
+    "pourquoi": "On choisit la souche de poulet de chair parce qu'elle grandit vite.",
+    "figures": [
+     {
+      "type": "comparaison",
+      "items": [
+       {
+        "label": "souche rapide",
+        "taille": 1.0
+       },
+       {
+        "label": "souche lente",
+        "taille": 0.45
+       }
+      ]
+     },
+     {
+      "type": "comparaison",
+      "items": [
+       {
+        "label": "poulet de chair",
+        "taille": 1.0
+       },
+       {
+        "label": "poulet local",
+        "taille": 0.5
+       }
+      ]
+     },
+     {
+      "type": "comparaison",
+      "items": [
+       {
+        "label": "pondeuse : œufs",
+        "taille": 0.6
+       },
+       {
+        "label": "chair : grandit vite",
+        "taille": 1.0
+       }
+      ]
+     }
+    ]
    },
    {
     "id": "q3",
@@ -367,7 +425,33 @@
      "Arrivée début janvier → vente mi-février",
      "Jour 1 → ≈ 6 semaines → vente"
     ],
-    "pourquoi": "Grâce à sa croissance rapide, le poulet de chair est souvent vendu vers six semaines."
+    "pourquoi": "Grâce à sa croissance rapide, le poulet de chair est souvent vendu vers six semaines.",
+    "figures": [
+     {
+      "type": "frise",
+      "etapes": [
+       "Jour 1",
+       "42 jours",
+       "Vente"
+      ]
+     },
+     {
+      "type": "frise",
+      "etapes": [
+       "Début janvier",
+       "Mi-février",
+       "Vente"
+      ]
+     },
+     {
+      "type": "frise",
+      "etapes": [
+       "Jour 1",
+       "≈ 6 semaines",
+       "Vente"
+      ]
+     }
+    ]
    },
    {
     "id": "q4",
@@ -398,7 +482,27 @@
      "Entre 5 et 7 semaines selon l'élevage",
      "≈ veut dire environ : à peu près, pas exactement"
     ],
-    "pourquoi": "« Environ » veut dire que six semaines est un repère, pas une durée fixe."
+    "pourquoi": "« Environ » veut dire que six semaines est un repère, pas une durée fixe.",
+    "figures": [
+     {
+      "type": "intervalle",
+      "min": "8 min",
+      "centre": "10 min",
+      "max": "12 min",
+      "label": "environ 10 minutes"
+     },
+     {
+      "type": "intervalle",
+      "min": "5 sem.",
+      "centre": "6 sem.",
+      "max": "7 sem.",
+      "label": "environ 6 semaines"
+     },
+     {
+      "type": "symbole",
+      "label": "≈ = environ"
+     }
+    ]
    }
   ],
   "felicitations": [
