@@ -41,6 +41,14 @@ Future<dynamic> lireJsonWeb(String url, {bool immuable = false}) async {
   return jsonDecode(texte);
 }
 
+/// Télécharge la version la plus récente et met la mémoire à jour.
+Future<dynamic> lireJsonFrais(String url) async {
+  final texte = await _telecharger(url);
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('cache:$url', texte);
+  return jsonDecode(texte);
+}
+
 /// Même normalisation que le vérificateur d'ancres : minuscules, sans accents ni ponctuation.
 String normaliser(String s) {
   const accents = {
@@ -83,7 +91,10 @@ class ScenePrete {
 Future<ScenePrete> preparerScene(String asset, String voix) async {
   final scene = jsonDecode(await rootBundle.loadString(asset)) as Map<String, dynamic>;
   final cats = await Future.wait([lireJsonWeb('$cdnVoix/catalogue.json'), lireJsonWeb('$cdnImages/catalogue.json')]);
-  final catVoix = cats[0] as List;
+  var catVoix = cats[0] as List;
+  if (!catVoix.any((c) => c['scene'] == scene['scene'] && c['voix'] == voix)) {
+    catVoix = await lireJsonFrais('$cdnVoix/catalogue.json') as List;
+  }
   final catImages = cats[1] as List;
   final images = <String, String>{};
   for (final c in catImages) {
