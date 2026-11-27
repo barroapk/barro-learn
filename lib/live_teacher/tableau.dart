@@ -74,7 +74,7 @@ Map<String, ElementTableau> etatTableau(ScenePrete s, int t) {
   return els;
 }
 
-TextStyle _style(String s) {
+TextStyle styleTableau(String s) {
   const f = GoogleFonts.patrickHand;
   switch (s) {
     case 'titre':
@@ -94,115 +94,306 @@ TextStyle _style(String s) {
   }
 }
 
-class LiveBoard extends StatelessWidget {
+// Les mains du professeur (Faso Dan Fani). Pointe du feutre et patin de la brosse mesurés au pixel.
+const _mainStylo = 'assets/live_teacher/main_stylo.webp';
+const _mainBrosse = 'assets/live_teacher/main_brosse.webp';
+const _largeurStylo = 210.0;
+const _pointeStylo = Offset(1, 41.5);
+const _largeurBrosse = 230.0;
+const _patinBrosse = Offset(175, 34.5);
+const _hauteurImage = 110.0;
+const _bandes = 5;
+
+const dureeImage = 1600;
+const dureeFleche = 600;
+const dureeSouligne = 500;
+const dureeCercle = 700;
+const dureeEfface = 700;
+int dureeEcriture(String? t) => math.max(500, math.min(2600, (t?.length ?? 4) * 85));
+
+/// Mesure du texte : position de chaque lettre, pour que la pointe avance lettre par lettre.
+class _Mesure {
+  _Mesure(String texte, TextStyle style)
+      : tp = TextPainter(
+          text: TextSpan(text: texte, style: style),
+          textDirection: TextDirection.ltr,
+          maxLines: 1,
+          textScaler: TextScaler.noScaling,
+        )..layout() {
+    bornes = [for (var i = 0; i <= texte.length; i++) tp.getOffsetForCaret(TextPosition(offset: i), Rect.zero).dx];
+  }
+  final TextPainter tp;
+  late final List<double> bornes;
+  double get largeur => tp.width;
+  double get hauteur => tp.height;
+  Size get boite => Size(tp.width + 16, tp.height + 8);
+
+  /// Pointe du feutre dans la boîte : avance lettre par lettre et monte/descend dans chaque lettre.
+  Offset pointe(double p) {
+    final n = bornes.length - 1;
+    if (n <= 0) return const Offset(8, 4);
+    final pos = p * n;
+    final k = pos.floor().clamp(0, n - 1);
+    final f = pos - k;
+    final x = bornes[k] + (bornes[k + 1] - bornes[k]) * f;
+    final y = hauteur * (0.3 + 0.4 * (0.5 - 0.5 * math.cos(2 * math.pi * f)));
+    return Offset(8 + x, 4 + y);
+  }
+}
+
+class _Main {
+  _Main(this.id, this.point, this.brosse);
+  final String id;
+  final Offset point;
+  final bool brosse;
+}
+
+Offset _pointeImage(double p, Size s) {
+  final pos = p * _bandes;
+  final k = pos.floor().clamp(0, _bandes - 1);
+  final f = pos - k;
+  final h = s.height / _bandes;
+  final x = k.isEven ? s.width * f : s.width * (1 - f);
+  return Offset(x, h * (k + 0.5));
+}
+
+class LiveBoard extends StatefulWidget {
   const LiveBoard({super.key, required this.elements, required this.t});
   final Map<String, ElementTableau> elements;
   final int t;
 
-  Iterable<ElementTableau> _zone(String z) => elements.values.where((e) => e.zone == z);
+  @override
+  State<LiveBoard> createState() => _LiveBoardState();
+}
+
+class _LiveBoardState extends State<LiveBoard> {
+  final _liens = <String, LayerLink>{};
+  LayerLink _lien(String id) => _liens.putIfAbsent(id, LayerLink.new);
+
+  Iterable<ElementTableau> _zone(String z) => widget.elements.values.where((e) => e.zone == z);
 
   @override
   Widget build(BuildContext context) {
-    final images = _zone('gauche').where((e) => e.genre == 'image').toList();
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFDDE3DF)),
-        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 4))],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Center(child: Wrap(children: [for (final e in _zone('titre')) ElementVue(e: e, t: t)])),
-        const SizedBox(height: 12),
-        if (images.isNotEmpty)
-          SizedBox(
-            height: 120,
-            child: Row(children: [
-              for (final e in images)
-                Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: ImageVue(e: e, t: t))),
-            ]),
+    return LayoutBuilder(builder: (context, c) {
+      final t = widget.t;
+      final images = _zone('gauche').where((e) => e.genre == 'image').toList();
+      final interieur = c.maxWidth - 24 - 32;
+      final tailleImage = Size(images.isEmpty ? 0 : interieur / images.length - 8, _hauteurImage);
+      final mesures = <String, _Mesure>{
+        for (final e in widget.elements.values)
+          if (e.genre == 'texte') e.id: _Mesure(e.texte ?? '', styleTableau(e.style)),
+      };
+      final main = _mainActive(t, mesures, tailleImage);
+      return Stack(clipBehavior: Clip.none, children: [
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFDDE3DF)),
+            boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 4))],
           ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [for (final e in _zone('droite')) ElementVue(e: e, t: t)],
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Center(child: Wrap(children: [for (final e in _zone('titre')) _vue(e, mesures, t)])),
+            const SizedBox(height: 12),
+            if (images.isNotEmpty)
+              SizedBox(
+                height: _hauteurImage,
+                child: Row(children: [
+                  for (final e in images)
+                    Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: _image(e, t, tailleImage)),
+                ]),
+              ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [for (final e in _zone('droite')) _vue(e, mesures, t)],
+                ),
+              ),
+            ),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 4,
+              runSpacing: 4,
+              children: [for (final e in _zone('bas')) _vue(e, mesures, t)],
+            ),
+          ]),
+        ),
+        if (main != null)
+          Positioned(
+            left: 0,
+            top: 0,
+            child: CompositedTransformFollower(
+              link: _lien(main.id),
+              showWhenUnlinked: false,
+              offset: main.point - (main.brosse ? _patinBrosse : _pointeStylo),
+              child: IgnorePointer(
+                child: Image.asset(
+                  main.brosse ? _mainBrosse : _mainStylo,
+                  width: main.brosse ? _largeurBrosse : _largeurStylo,
+                  gaplessPlayback: true,
+                ),
+              ),
+            ),
+          ),
+      ]);
+    });
+  }
+
+  /// Le geste en cours le plus récent décide où se trouve la main (ou s'il n'y a pas de main).
+  _Main? _mainActive(int t, Map<String, _Mesure> m, Size tailleImage) {
+    _Main? meilleur;
+    var debut = -1;
+    void proposer(String id, int t0, Offset p, bool brosse) {
+      if (t0 >= debut) {
+        debut = t0;
+        meilleur = _Main(id, p, brosse);
+      }
+    }
+
+    for (final e in widget.elements.values) {
+      final ef = prog(t, e.tEfface, dureeEfface);
+      if (ef > 0 && ef < 1) {
+        final b = e.genre == 'texte' ? m[e.id]!.boite : (e.genre == 'image' ? tailleImage : const Size(48, 24));
+        proposer(e.id, e.tEfface!, Offset(b.width * (0.5 + 0.45 * math.sin(ef * math.pi * 5)), b.height * ef), true);
+        continue;
+      }
+      if (e.genre == 'texte') {
+        final me = m[e.id]!;
+        if (e.animer) {
+          final p = prog(t, e.tApparition, dureeEcriture(e.texte));
+          if (p > 0 && p < 1) proposer(e.id, e.tApparition, me.pointe(p), false);
+        }
+        final b = me.boite;
+        final u = prog(t, e.tSouligne, dureeSouligne);
+        if (u > 0 && u < 1) proposer(e.id, e.tSouligne!, Offset(4 + (b.width - 8) * u, b.height - 2), false);
+        final c = prog(t, e.tCercle, dureeCercle);
+        if (c > 0 && c < 1) {
+          final a = -math.pi / 2 + 2 * math.pi * c;
+          proposer(e.id, e.tCercle!,
+              Offset(b.width / 2 + (b.width / 2 + 2) * math.cos(a), b.height / 2 + (b.height / 2 + 2) * math.sin(a)), false);
+        }
+      } else if (e.genre == 'image') {
+        final p = prog(t, e.tApparition, dureeImage);
+        if (p > 0 && p < 1) proposer(e.id, e.tApparition, _pointeImage(p, tailleImage), false);
+      } else if (e.genre == 'fleche') {
+        final p = prog(t, e.tApparition, dureeFleche);
+        if (p > 0 && p < 1) proposer(e.id, e.tApparition, Offset(4 + 40 * p, 12), false);
+      }
+    }
+    return meilleur;
+  }
+
+  Widget _image(ElementTableau e, int t, Size s) {
+    final p = prog(t, e.tApparition, dureeImage);
+    final visible = 1 - prog(t, e.tEfface, dureeEfface);
+    return CompositedTransformTarget(
+      link: _lien(e.id),
+      child: SizedBox(
+        width: s.width,
+        height: s.height,
+        child: Opacity(
+          opacity: visible,
+          child: ClipPath(
+            clipper: _ClipBandes(p),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: e.url == null
+                  ? Container(color: const Color(0xFFEEEEEE))
+                  : Image.network(e.url!, fit: BoxFit.contain, gaplessPlayback: true,
+                      errorBuilder: (_, __, ___) => Container(color: const Color(0xFFEEEEEE))),
             ),
           ),
         ),
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 4,
-          runSpacing: 4,
-          children: [for (final e in _zone('bas')) ElementVue(e: e, t: t)],
-        ),
-      ]),
-    );
-  }
-}
-
-class ImageVue extends StatelessWidget {
-  const ImageVue({super.key, required this.e, required this.t});
-  final ElementTableau e;
-  final int t;
-
-  @override
-  Widget build(BuildContext context) {
-    final o = prog(t, e.tApparition, 600) * (1 - prog(t, e.tEfface, 500));
-    return Opacity(
-      opacity: o,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: e.url == null
-            ? Container(color: const Color(0xFFEEEEEE), child: const Center(child: Icon(Icons.image_not_supported)))
-            : Image.network(e.url!, fit: BoxFit.contain, width: double.infinity,
-                errorBuilder: (_, __, ___) => Container(color: const Color(0xFFEEEEEE))),
       ),
     );
   }
-}
 
-class ElementVue extends StatelessWidget {
-  const ElementVue({super.key, required this.e, required this.t});
-  final ElementTableau e;
-  final int t;
-
-  @override
-  Widget build(BuildContext context) {
-    final dureeEcriture = math.max(600, math.min(2200, (e.texte?.length ?? 4) * 70));
-    final apparition = e.animer ? prog(t, e.tApparition, dureeEcriture) : prog(t, e.tApparition, 300);
-    final visible = 1 - prog(t, e.tEfface, 500);
+  Widget _vue(ElementTableau e, Map<String, _Mesure> m, int t) {
+    final visible = 1 - prog(t, e.tEfface, dureeEfface);
     if (visible <= 0) return const SizedBox.shrink();
-    Widget w;
+    Widget boite;
     if (e.genre == 'fleche') {
-      w = CustomPaint(size: const Size(48, 24), painter: _Fleche(apparition));
+      boite = CustomPaint(size: const Size(48, 24), painter: _Fleche(prog(t, e.tApparition, dureeFleche)));
     } else {
-      final txt = Text(e.texte ?? '', style: _style(e.style));
-      w = e.animer
-          ? ClipRect(child: Align(alignment: Alignment.centerLeft, widthFactor: apparition, child: txt))
-          : Opacity(opacity: apparition, child: txt);
-      if (e.animer && apparition > 0 && apparition < 1) {
-        w = Stack(clipBehavior: Clip.none, children: [
-          w,
-          const Positioned(right: -16, bottom: 0, child: Icon(Icons.edit, size: 20, color: Color(0xFF0D3B66))),
-        ]);
-      }
-      w = Container(
+      final me = m[e.id]!;
+      final p = e.animer ? prog(t, e.tApparition, dureeEcriture(e.texte)) : 1.0;
+      final opacite = e.animer ? 1.0 : prog(t, e.tApparition, 300);
+      final revele = p >= 1 ? me.largeur + 6 : me.pointe(p).dx - 6;
+      final texte = SizedBox(
+        width: me.largeur,
+        height: me.hauteur,
+        child: ClipRect(
+          clipper: _ClipGauche(revele),
+          child: Text(e.texte ?? '', style: styleTableau(e.style), maxLines: 1, softWrap: false,
+              textScaler: TextScaler.noScaling),
+        ),
+      );
+      boite = Container(
         decoration: BoxDecoration(
           color: const Color(0xFFFFEB3B).withValues(alpha: 0.55 * prog(t, e.tSurligne, 400)),
           borderRadius: BorderRadius.circular(6),
         ),
         child: CustomPaint(
-          foregroundPainter: _Marques(prog(t, e.tSouligne, 500), prog(t, e.tCercle, 700)),
-          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: w),
+          foregroundPainter: _Marques(prog(t, e.tSouligne, dureeSouligne), prog(t, e.tCercle, dureeCercle)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Opacity(opacity: opacite, child: texte),
+          ),
         ),
       );
     }
-    return Opacity(opacity: visible, child: Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: w));
+    return Opacity(
+      opacity: visible,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: CompositedTransformTarget(link: _lien(e.id), child: boite),
+        ),
+      ),
+    );
   }
+}
+
+class _ClipGauche extends CustomClipper<Rect> {
+  _ClipGauche(this.largeur);
+  final double largeur;
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTWH(-4, -12, largeur.clamp(0.0, size.width + 12).toDouble() + 4, size.height + 24);
+
+  @override
+  bool shouldReclip(_ClipGauche old) => old.largeur != largeur;
+}
+
+class _ClipBandes extends CustomClipper<Path> {
+  _ClipBandes(this.p);
+  final double p;
+
+  @override
+  Path getClip(Size s) {
+    final path = Path();
+    final h = s.height / _bandes;
+    final pos = p * _bandes;
+    final k = pos.floor();
+    for (var i = 0; i < _bandes; i++) {
+      if (i < k) {
+        path.addRect(Rect.fromLTWH(0, i * h, s.width, h + 0.5));
+      } else if (i == k) {
+        final w = s.width * (pos - k);
+        path.addRect(i.isEven ? Rect.fromLTWH(0, i * h, w, h + 0.5) : Rect.fromLTWH(s.width - w, i * h, w, h + 0.5));
+      }
+    }
+    return path;
+  }
+
+  @override
+  bool shouldReclip(_ClipBandes old) => old.p != p;
 }
 
 class _Marques extends CustomPainter {

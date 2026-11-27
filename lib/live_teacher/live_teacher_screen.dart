@@ -41,6 +41,10 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
     });
     try {
       final scene = await preparerScene(sceneAsset, voix);
+      for (final url in scene.images.values) {
+        if (!mounted) return;
+        await precacheImage(NetworkImage(url), context);
+      }
       await _player.setAudioSource(ConcatenatingAudioSource(
         children: [for (final s in scene.segments) AudioSource.uri(Uri.parse(s.audioUrl))],
       ));
@@ -207,10 +211,8 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
           Expanded(child: LiveBoard(elements: etat, t: _t)),
           if (_fini)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Column(children: [
-                const Text('Fin de la scène', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
                 Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 8, children: [
                   FilledButton(onPressed: _recommencer, child: const Text('Recommencer')),
                   OutlinedButton(onPressed: _changerVoix, child: const Text('Changer de voix')),
