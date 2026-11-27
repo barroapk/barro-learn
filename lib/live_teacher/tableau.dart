@@ -17,9 +17,8 @@ class ElementTableau {
     this.url,
     this.animer = false,
     this.couleur = 'noir',
+    this.dureeEcriture = 1200,
   });
-  final String couleur;
-  String marque = 'rouge';
   final String id;
   final String genre;
   final String zone;
@@ -28,6 +27,9 @@ class ElementTableau {
   final String? url;
   final int tApparition;
   final bool animer;
+  final String couleur;
+  final int dureeEcriture;
+  String marque = 'rouge';
   int? tSouligne;
   int? tCercle;
   int? tSurligne;
@@ -38,6 +40,12 @@ double prog(int t, int? t0, int dureeMs) => t0 == null ? 0 : ((t - t0) / dureeMs
 
 List<String> _cibles(dynamic c) => c is List ? [for (final x in c) x as String] : [c as String];
 
+/// Environ 160 ms par lettre (rythme d'une main), sans jamais déborder sur le geste suivant.
+int calculerEcriture(String? texte, int ecart) {
+  final voulu = ((texte?.length ?? 4) * 160).clamp(700, 4500).toInt();
+  return math.max(400, math.min(voulu, ecart - 150));
+}
+
 Map<String, ElementTableau> etatTableau(ScenePrete s, int t) {
   final els = <String, ElementTableau>{};
   for (final e in s.evenements) {
@@ -47,10 +55,16 @@ Map<String, ElementTableau> etatTableau(ScenePrete s, int t) {
     switch (c['type']) {
       case 'board.write':
         els[id!] = ElementTableau(
-            id: id, genre: 'texte', zone: (c['zone'] ?? 'droite') as String, tApparition: e.tMs,
-            texte: c['texte'] as String?, style: (c['style'] ?? 'note') as String,
-            animer: c['animation'] == 'ecriture_manuscrite',
-            couleur: (c['couleur'] ?? couleurParDefaut[c['style'] ?? 'note'] ?? 'noir') as String);
+          id: id,
+          genre: 'texte',
+          zone: (c['zone'] ?? 'droite') as String,
+          tApparition: e.tMs,
+          texte: c['texte'] as String?,
+          style: (c['style'] ?? 'note') as String,
+          animer: c['animation'] == 'ecriture_manuscrite',
+          couleur: (c['couleur'] ?? couleurParDefaut[c['style'] ?? 'note'] ?? 'noir') as String,
+          dureeEcriture: calculerEcriture(c['texte'] as String?, ((c['_suivant'] as int?) ?? (e.tMs + 5000)) - e.tMs),
+        );
       case 'media.show':
         els[id!] = ElementTableau(
             id: id, genre: 'image', zone: (c['zone'] ?? 'gauche') as String, tApparition: e.tMs,
@@ -129,15 +143,18 @@ const _largeurBrosse = 230.0;
 const _patinBrosse = Offset(175, 34.5);
 const _hauteurImage = 110.0;
 const _bandes = 5;
+const _marge = 10.0; // place pour les lettres qui dépassent (évite les lettres coupées)
+const _approche = 400; // la main arrive 0,4 s avant le mot
+const _depart = 300; // puis repart
+const _horsTableau = Offset(160, 240);
 
 const dureeImage = 1600;
 const dureeFleche = 600;
 const dureeSouligne = 500;
 const dureeCercle = 700;
 const dureeEfface = 700;
-int dureeEcriture(String? t) => math.max(500, math.min(2600, (t?.length ?? 4) * 85));
 
-/// Mesure du texte : position de chaque lettre, pour que la pointe avance lettre par lettre.
+/// Mesure du texte : position de chaque lettre, pour que la pointe avance au rythme des lettres.
 class _Mesure {
   _Mesure(String texte, TextStyle style)
       : tp = TextPainter(
@@ -152,16 +169,19 @@ class _Mesure {
   late final List<double> bornes;
   double get largeur => tp.width;
   double get hauteur => tp.height;
-  Size get boite => Size(tp.width + 16, tp.height + 8);
+  Size get boite => Size(tp.width + _marge + 16, tp.height + 8);
 
-  /// Pointe du feutre dans la boîte : avance lettre par lettre et monte/descend dans chaque lettre.
+  /// Pointe du feutre : avance selon la largeur des lettres et monte/descend dans chaque lettre.
   Offset pointe(double p) {
     final n = bornes.length - 1;
-    if (n <= 0) return const Offset(8, 4);
-    final pos = p * n;
-    final k = pos.floor().clamp(0, n - 1);
-    final f = pos - k;
-    final x = bornes[k] + (bornes[k + 1] - bornes[k]) * f;
+    if (n <= 0 || largeur <= 0) return const Offset(8, 4);
+    final x = p.clamp(0.0, 1.0) * largeur;
+    var k = 0;
+    while (k < n - 1 && bornes[k + 1] <= x) {
+      k++;
+    }
+    final w = bornes[k + 1] - bornes[k];
+    final f = w <= 0 ? 0.0 : ((x - bornes[k]) / w).clamp(0.0, 1.0);
     final y = hauteur * (0.3 + 0.4 * (0.5 - 0.5 * math.cos(2 * math.pi * f)));
     return Offset(8 + x, 4 + y);
   }
@@ -175,6 +195,17 @@ class _Main {
   final String encre;
 }
 
+class _Geste {
+  _Geste(this.id, this.t0, this.duree, this.brosse, this.couleur, this.point);
+  final String id;
+  final int t0;
+  final int duree;
+  final bool brosse;
+  final String couleur;
+  final Offset Function(double p) point;
+  int get t1 => t0 + duree;
+}
+
 Offset _pointeImage(double p, Size s) {
   final pos = p * _bandes;
   final k = pos.floor().clamp(0, _bandes - 1);
@@ -184,6 +215,8 @@ Offset _pointeImage(double p, Size s) {
   return Offset(x, h * (k + 0.5));
 }
 
+/// Le tableau. `elements` contient aussi les gestes des 0,4 s à venir (invisibles),
+/// pour que la main puisse arriver avant le mot.
 class LiveBoard extends StatefulWidget {
   const LiveBoard({super.key, required this.elements, required this.t});
   final Map<String, ElementTableau> elements;
@@ -270,46 +303,64 @@ class _LiveBoardState extends State<LiveBoard> {
     });
   }
 
-  /// Le geste en cours le plus récent décide où se trouve la main et quel feutre elle tient.
-  _Main? _mainActive(int t, Map<String, _Mesure> m, Size tailleImage) {
-    _Main? meilleur;
-    var debut = -1;
-    void proposer(String id, int t0, Offset p, bool brosse, String couleur) {
-      if (t0 >= debut) {
-        debut = t0;
-        meilleur = _Main(id, p, brosse, couleur);
-      }
-    }
-
+  List<_Geste> _gestes(Map<String, _Mesure> m, Size tailleImage) {
+    final g = <_Geste>[];
     for (final e in widget.elements.values) {
-      final ef = prog(t, e.tEfface, dureeEfface);
-      if (ef > 0 && ef < 1) {
+      if (e.tEfface != null) {
         final b = e.genre == 'texte' ? m[e.id]!.boite : (e.genre == 'image' ? tailleImage : const Size(48, 24));
-        proposer(e.id, e.tEfface!, Offset(b.width * (0.5 + 0.45 * math.sin(ef * math.pi * 5)), b.height * ef), true, 'noir');
-        continue;
+        g.add(_Geste(e.id, e.tEfface!, dureeEfface, true, 'noir',
+            (p) => Offset(b.width * (0.5 + 0.45 * math.sin(p * math.pi * 5)), b.height * p)));
       }
       if (e.genre == 'texte') {
         final me = m[e.id]!;
-        if (e.animer) {
-          final p = prog(t, e.tApparition, dureeEcriture(e.texte));
-          if (p > 0 && p < 1) proposer(e.id, e.tApparition, me.pointe(p), false, e.couleur);
-        }
         final b = me.boite;
-        final u = prog(t, e.tSouligne, dureeSouligne);
-        if (u > 0 && u < 1) proposer(e.id, e.tSouligne!, Offset(4 + (b.width - 8) * u, b.height - 2), false, e.marque);
-        final c = prog(t, e.tCercle, dureeCercle);
-        if (c > 0 && c < 1) {
-          final a = -math.pi / 2 + 2 * math.pi * c;
-          proposer(e.id, e.tCercle!,
-              Offset(b.width / 2 + (b.width / 2 + 2) * math.cos(a), b.height / 2 + (b.height / 2 + 2) * math.sin(a)),
-              false, e.marque);
+        if (e.animer) g.add(_Geste(e.id, e.tApparition, e.dureeEcriture, false, e.couleur, me.pointe));
+        if (e.tSouligne != null) {
+          g.add(_Geste(e.id, e.tSouligne!, dureeSouligne, false, e.marque,
+              (p) => Offset(4 + (b.width - 8) * p, b.height - 2)));
+        }
+        if (e.tCercle != null) {
+          g.add(_Geste(e.id, e.tCercle!, dureeCercle, false, e.marque, (p) {
+            final a = -math.pi / 2 + 2 * math.pi * p;
+            return Offset(b.width / 2 + (b.width / 2 + 2) * math.cos(a), b.height / 2 + (b.height / 2 + 2) * math.sin(a));
+          }));
         }
       } else if (e.genre == 'image') {
-        final p = prog(t, e.tApparition, dureeImage);
-        if (p > 0 && p < 1) proposer(e.id, e.tApparition, _pointeImage(p, tailleImage), false, 'noir');
+        g.add(_Geste(e.id, e.tApparition, dureeImage, false, 'noir', (p) => _pointeImage(p, tailleImage)));
       } else if (e.genre == 'fleche') {
-        final p = prog(t, e.tApparition, dureeFleche);
-        if (p > 0 && p < 1) proposer(e.id, e.tApparition, Offset(4 + 40 * p, 12), false, e.couleur);
+        g.add(_Geste(e.id, e.tApparition, dureeFleche, false, e.couleur, (p) => Offset(4 + 40 * p, 12)));
+      }
+    }
+    return g;
+  }
+
+  /// La main : arrive 0,4 s avant le geste avec le bon outil, suit le geste, puis repart.
+  _Main? _mainActive(int t, Map<String, _Mesure> m, Size tailleImage) {
+    _Main? meilleur;
+    var priorite = -1;
+    var debut = -1;
+    for (final g in _gestes(m, tailleImage)) {
+      int p;
+      Offset point;
+      if (t >= g.t0 && t <= g.t1) {
+        p = 3;
+        point = g.point(((t - g.t0) / g.duree).clamp(0.0, 1.0));
+      } else if (t >= g.t0 - _approche && t < g.t0) {
+        p = 2;
+        final q = (t - (g.t0 - _approche)) / _approche;
+        final doux = 1 - (1 - q) * (1 - q);
+        point = g.point(0) + _horsTableau * (1 - doux);
+      } else if (t > g.t1 && t <= g.t1 + _depart) {
+        p = 1;
+        final q = (t - g.t1) / _depart;
+        point = g.point(1) + _horsTableau * (q * q);
+      } else {
+        continue;
+      }
+      if (p > priorite || (p == priorite && g.t0 > debut)) {
+        priorite = p;
+        debut = g.t0;
+        meilleur = _Main(g.id, point, g.brosse, g.couleur);
       }
     }
     return meilleur;
@@ -348,16 +399,16 @@ class _LiveBoardState extends State<LiveBoard> {
       boite = CustomPaint(size: const Size(48, 24), painter: _Fleche(prog(t, e.tApparition, dureeFleche), encre(e.couleur)));
     } else {
       final me = m[e.id]!;
-      final p = e.animer ? prog(t, e.tApparition, dureeEcriture(e.texte)) : 1.0;
+      final p = e.animer ? prog(t, e.tApparition, e.dureeEcriture) : 1.0;
       final opacite = e.animer ? 1.0 : prog(t, e.tApparition, 300);
-      final revele = p >= 1 ? me.largeur + 6 : me.pointe(p).dx - 6;
+      final revele = p <= 0 ? 0.0 : (p >= 1 ? me.largeur + _marge + 12 : me.pointe(p).dx - 8 + 2);
       final texte = SizedBox(
-        width: me.largeur,
+        width: me.largeur + _marge,
         height: me.hauteur,
         child: ClipRect(
           clipper: _ClipGauche(revele),
           child: Text(e.texte ?? '', style: styleTableau(e.style, e.couleur), maxLines: 1, softWrap: false,
-              textScaler: TextScaler.noScaling),
+              overflow: TextOverflow.visible, textScaler: TextScaler.noScaling),
         ),
       );
       boite = Container(
@@ -366,7 +417,8 @@ class _LiveBoardState extends State<LiveBoard> {
           borderRadius: BorderRadius.circular(6),
         ),
         child: CustomPaint(
-          foregroundPainter: _Marques(prog(t, e.tSouligne, dureeSouligne), prog(t, e.tCercle, dureeCercle), encre(e.marque)),
+          foregroundPainter:
+              _Marques(prog(t, e.tSouligne, dureeSouligne), prog(t, e.tCercle, dureeCercle), encre(e.marque)),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Opacity(opacity: opacite, child: texte),
@@ -393,7 +445,10 @@ class _ClipGauche extends CustomClipper<Rect> {
   final double largeur;
 
   @override
-  Rect getClip(Size size) => Rect.fromLTWH(-4, -12, largeur.clamp(0.0, size.width + 12).toDouble() + 4, size.height + 24);
+  Rect getClip(Size size) {
+    if (largeur <= 0) return Rect.zero;
+    return Rect.fromLTWH(-6, -12, largeur.clamp(0.0, size.width + 12).toDouble() + 6, size.height + 24);
+  }
 
   @override
   bool shouldReclip(_ClipGauche old) => old.largeur != largeur;
@@ -446,7 +501,7 @@ class _Marques extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_Marques old) => old.souligne != souligne || old.cercle != cercle;
+  bool shouldRepaint(_Marques old) => old.souligne != souligne || old.cercle != cercle || old.couleur != couleur;
 }
 
 class _Fleche extends CustomPainter {
@@ -456,6 +511,7 @@ class _Fleche extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (p <= 0) return;
     final paint = Paint()
       ..color = couleur
       ..strokeWidth = 3
@@ -470,5 +526,5 @@ class _Fleche extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_Fleche old) => old.p != p;
+  bool shouldRepaint(_Fleche old) => old.p != p || old.couleur != couleur;
 }

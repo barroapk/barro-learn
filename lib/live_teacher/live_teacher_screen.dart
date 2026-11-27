@@ -176,7 +176,7 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
   }
 
   Widget _cours(ScenePrete s) {
-    final etat = etatTableau(s, _t);
+    final etat = etatTableau(s, _t + 400);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapUp: _toucher,

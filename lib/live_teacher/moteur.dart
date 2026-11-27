@@ -108,5 +108,8 @@ Future<ScenePrete> preparerScene(String asset, String voix) async {
     debut += duree;
   }
   evenements.sort((a, b) => a.tMs != b.tMs ? a.tMs.compareTo(b.tMs) : a.ordre.compareTo(b.ordre));
+  for (var i = 0; i < evenements.length; i++) {
+    evenements[i].cmd['_suivant'] = i + 1 < evenements.length ? evenements[i + 1].tMs : evenements[i].tMs + 5000;
+  }
   return ScenePrete(scene['titre'] as String, segments, evenements, images);
 }
