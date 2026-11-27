@@ -18,7 +18,11 @@ class ElementTableau {
     this.animer = false,
     this.couleur = 'noir',
     this.dureeEcriture = 1200,
+    this.dessin,
+    this.dureeDessin = 2000,
   });
+  final String? dessin;
+  final int dureeDessin;
   final String id;
   final String genre;
   final String zone;
@@ -46,6 +50,18 @@ int calculerEcriture(String? texte, int ecart) {
   return math.max(400, math.min(voulu, ecart - 150));
 }
 
+/// Environ 2,2 ms par pixel de trait, sans déborder sur le geste suivant.
+int calculerDessin(Dessin? d, int ecart) {
+  if (d == null) return dureeImage;
+  final voulu = (d.total * 2.2).clamp(1500, 7000).toInt();
+  return math.max(1200, math.min(voulu, ecart - 150));
+}
+
+Offset _versBoite(Dessin d, Offset p, Size s) {
+  final k = math.min(s.width / d.largeur, s.height / d.hauteur);
+  return Offset((s.width - d.largeur * k) / 2 + p.dx * k, (s.height - d.hauteur * k) / 2 + p.dy * k);
+}
+
 Map<String, ElementTableau> etatTableau(ScenePrete s, int t) {
   final els = <String, ElementTableau>{};
   for (final e in s.evenements) {
@@ -68,7 +84,9 @@ Map<String, ElementTableau> etatTableau(ScenePrete s, int t) {
       case 'media.show':
         els[id!] = ElementTableau(
             id: id, genre: 'image', zone: (c['zone'] ?? 'gauche') as String, tApparition: e.tMs,
-            url: s.images[c['media']]);
+            url: s.images[c['media']],
+            dessin: c['dessin'] as String?,
+            dureeDessin: calculerDessin(s.dessins[c['dessin']], ((c['_suivant'] as int?) ?? (e.tMs + 5000)) - e.tMs));
       case 'board.draw':
         els[id!] = ElementTableau(
             id: id, genre: 'fleche', zone: (c['zone'] ?? 'bas') as String, tApparition: e.tMs,
@@ -218,8 +236,9 @@ Offset _pointeImage(double p, Size s) {
 /// Le tableau. `elements` contient aussi les gestes des 0,4 s à venir (invisibles),
 /// pour que la main puisse arriver avant le mot.
 class LiveBoard extends StatefulWidget {
-  const LiveBoard({super.key, required this.elements, required this.t});
+  const LiveBoard({super.key, required this.elements, required this.t, this.dessins = const {}});
   final Map<String, ElementTableau> elements;
+  final Map<String, Dessin> dessins;
   final int t;
 
   @override
@@ -326,7 +345,12 @@ class _LiveBoardState extends State<LiveBoard> {
           }));
         }
       } else if (e.genre == 'image') {
-        g.add(_Geste(e.id, e.tApparition, dureeImage, false, 'noir', (p) => _pointeImage(p, tailleImage)));
+        final d = e.dessin == null ? null : widget.dessins[e.dessin];
+        if (d != null) {
+          g.add(_Geste(e.id, e.tApparition, e.dureeDessin, false, 'noir', (p) => _versBoite(d, d.pointe(p), tailleImage)));
+        } else {
+          g.add(_Geste(e.id, e.tApparition, dureeImage, false, 'noir', (p) => _pointeImage(p, tailleImage)));
+        }
       } else if (e.genre == 'fleche') {
         g.add(_Geste(e.id, e.tApparition, dureeFleche, false, e.couleur, (p) => Offset(4 + 40 * p, 12)));
       }
@@ -367,27 +391,29 @@ class _LiveBoardState extends State<LiveBoard> {
   }
 
   Widget _image(ElementTableau e, int t, Size s) {
-    final p = prog(t, e.tApparition, dureeImage);
     final visible = 1 - prog(t, e.tEfface, dureeEfface);
+    final d = e.dessin == null ? null : widget.dessins[e.dessin];
+    final photoWidget = ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: e.url == null
+          ? Container(color: const Color(0xFFEEEEEE))
+          : Image.network(e.url!, fit: BoxFit.contain, gaplessPlayback: true,
+              errorBuilder: (_, __, ___) => Container(color: const Color(0xFFEEEEEE))),
+    );
+    Widget contenu;
+    if (d != null) {
+      final p = prog(t, e.tApparition, e.dureeDessin);
+      final photo = prog(t, e.tApparition + e.dureeDessin + 400, 900);
+      contenu = Stack(fit: StackFit.expand, children: [
+        if (photo < 1) Opacity(opacity: 1 - photo, child: CustomPaint(painter: _Croquis(d, p))),
+        if (photo > 0) Opacity(opacity: photo, child: photoWidget),
+      ]);
+    } else {
+      contenu = ClipPath(clipper: _ClipBandes(prog(t, e.tApparition, dureeImage)), child: photoWidget);
+    }
     return CompositedTransformTarget(
       link: _lien(e.id),
-      child: SizedBox(
-        width: s.width,
-        height: s.height,
-        child: Opacity(
-          opacity: visible,
-          child: ClipPath(
-            clipper: _ClipBandes(p),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: e.url == null
-                  ? Container(color: const Color(0xFFEEEEEE))
-                  : Image.network(e.url!, fit: BoxFit.contain, gaplessPlayback: true,
-                      errorBuilder: (_, __, ___) => Container(color: const Color(0xFFEEEEEE))),
-            ),
-          ),
-        ),
-      ),
+      child: SizedBox(width: s.width, height: s.height, child: Opacity(opacity: visible, child: contenu)),
     );
   }
 
@@ -527,4 +553,35 @@ class _Fleche extends CustomPainter {
 
   @override
   bool shouldRepaint(_Fleche old) => old.p != p || old.couleur != couleur;
+}
+
+class _Croquis extends CustomPainter {
+  _Croquis(this.d, this.p);
+  final Dessin d;
+  final double p;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (p <= 0) return;
+    final k = math.min(size.width / d.largeur, size.height / d.hauteur);
+    canvas.translate((size.width - d.largeur * k) / 2, (size.height - d.hauteur * k) / 2);
+    canvas.scale(k);
+    final paint = Paint()
+      ..color = const Color(0xFF222222)
+      ..strokeWidth = 2.4 / k
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    for (final t in d.partiel(p)) {
+      if (t.length < 2) continue;
+      final path = Path()..moveTo(t.first.dx, t.first.dy);
+      for (final q in t.skip(1)) {
+        path.lineTo(q.dx, q.dy);
+      }
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Croquis old) => old.p != p || old.d != d;
 }

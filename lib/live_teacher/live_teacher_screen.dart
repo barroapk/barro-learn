@@ -41,7 +41,7 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
     });
     try {
       final scene = await preparerScene(sceneAsset, voix);
-      for (final url in scene.images.values) {
+      for (final url in scene.images.values.where((u) => !u.endsWith('.json'))) {
         if (!mounted) return;
         await precacheImage(NetworkImage(url), context);
       }
@@ -208,7 +208,7 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
               Text(_voix == 'henri' ? 'Henri' : 'Vivienne', style: const TextStyle(color: Colors.black54)),
             ]),
           ),
-          Expanded(child: LiveBoard(elements: etat, t: _t)),
+          Expanded(child: LiveBoard(elements: etat, t: _t, dessins: s.dessins)),
           if (_fini)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),

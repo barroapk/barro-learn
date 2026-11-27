@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show Offset;
 
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -51,11 +52,12 @@ class SegmentPret {
 }
 
 class ScenePrete {
-  ScenePrete(this.titre, this.segments, this.evenements, this.images);
+  ScenePrete(this.titre, this.segments, this.evenements, this.images, [this.dessins = const {}]);
   final String titre;
   final List<SegmentPret> segments;
   final List<Evenement> evenements;
   final Map<String, String> images;
+  final Map<String, Dessin> dessins;
   int get dureeMs => segments.isEmpty ? 0 : segments.last.debutMs + segments.last.dureeMs;
 }
 
@@ -111,5 +113,78 @@ Future<ScenePrete> preparerScene(String asset, String voix) async {
   for (var i = 0; i < evenements.length; i++) {
     evenements[i].cmd['_suivant'] = i + 1 < evenements.length ? evenements[i + 1].tMs : evenements[i].tMs + 5000;
   }
-  return ScenePrete(scene['titre'] as String, segments, evenements, images);
+  final dessins = <String, Dessin>{};
+  for (final seg in scene['segments'] as List) {
+    for (final cmd in seg['commandes'] as List) {
+      final id = cmd['dessin'] as String?;
+      if (id != null && images[id] != null && !dessins.containsKey(id)) {
+        dessins[id] = Dessin.fromJson(await lireJsonWeb(images[id]!) as Map);
+      }
+    }
+  }
+  return ScenePrete(scene['titre'] as String, segments, evenements, images, dessins);
+}
+
+/// Un dessin au trait : traits ordonnés, que la main parcourt du premier au dernier.
+class Dessin {
+  Dessin(this.largeur, this.hauteur, this.traits) {
+    longueurs = [for (final t in traits) _longueur(t)];
+    total = longueurs.fold(0.0, (a, b) => a + b);
+  }
+  factory Dessin.fromJson(Map j) => Dessin(
+        (j['largeur'] as num).toDouble(),
+        (j['hauteur'] as num).toDouble(),
+        [
+          for (final t in j['traits'] as List)
+            [for (final p in t as List) Offset((p[0] as num).toDouble(), (p[1] as num).toDouble())]
+        ],
+      );
+  final double largeur;
+  final double hauteur;
+  final List<List<Offset>> traits;
+  late final List<double> longueurs;
+  late final double total;
+
+  static double _longueur(List<Offset> t) {
+    var s = 0.0;
+    for (var i = 1; i < t.length; i++) {
+      s += (t[i] - t[i - 1]).distance;
+    }
+    return s;
+  }
+
+  /// Les traits déjà dessinés pour une progression p (0..1), le dernier partiellement.
+  List<List<Offset>> partiel(double p) {
+    var reste = p.clamp(0.0, 1.0) * total;
+    final out = <List<Offset>>[];
+    for (var i = 0; i < traits.length; i++) {
+      final t = traits[i];
+      if (reste >= longueurs[i]) {
+        out.add(t);
+        reste -= longueurs[i];
+        continue;
+      }
+      final partie = <Offset>[t.first];
+      for (var j = 1; j < t.length && reste > 0; j++) {
+        final seg = (t[j] - t[j - 1]).distance;
+        if (reste >= seg) {
+          partie.add(t[j]);
+          reste -= seg;
+        } else {
+          partie.add(Offset.lerp(t[j - 1], t[j], reste / seg)!);
+          reste = 0;
+        }
+      }
+      out.add(partie);
+      break;
+    }
+    return out;
+  }
+
+  /// Position de la pointe du feutre.
+  Offset pointe(double p) {
+    final parts = partiel(p);
+    if (parts.isEmpty) return traits.isEmpty ? Offset.zero : traits.first.first;
+    return parts.last.last;
+  }
 }
