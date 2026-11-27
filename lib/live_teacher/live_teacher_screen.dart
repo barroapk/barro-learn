@@ -208,7 +208,7 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
               Text(_voix == 'henri' ? 'Henri' : 'Vivienne', style: const TextStyle(color: Colors.black54)),
             ]),
           ),
-          Expanded(child: LiveBoard(elements: etat, t: _t, dessins: s.dessins)),
+          Expanded(child: LiveBoard(elements: etat, t: _t, dessins: s.dessins, nbImages: s.evenements.where((e) => e.cmd['type'] == 'media.show').length)),
           if (_fini)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),

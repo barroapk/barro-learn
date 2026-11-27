@@ -159,7 +159,7 @@ const _largeurStylo = 210.0;
 const _pointeStylo = Offset(1, 41.5);
 const _largeurBrosse = 230.0;
 const _patinBrosse = Offset(175, 34.5);
-const _hauteurImage = 110.0;
+const _hauteurImage = 140.0;
 const _bandes = 5;
 const _marge = 10.0; // place pour les lettres qui dépassent (évite les lettres coupées)
 const _approche = 400; // la main arrive 0,4 s avant le mot
@@ -236,7 +236,8 @@ Offset _pointeImage(double p, Size s) {
 /// Le tableau. `elements` contient aussi les gestes des 0,4 s à venir (invisibles),
 /// pour que la main puisse arriver avant le mot.
 class LiveBoard extends StatefulWidget {
-  const LiveBoard({super.key, required this.elements, required this.t, this.dessins = const {}});
+  const LiveBoard({super.key, required this.elements, required this.t, this.dessins = const {}, this.nbImages = 0});
+  final int nbImages;
   final Map<String, ElementTableau> elements;
   final Map<String, Dessin> dessins;
   final int t;
@@ -257,7 +258,8 @@ class _LiveBoardState extends State<LiveBoard> {
       final t = widget.t;
       final images = _zone('gauche').where((e) => e.genre == 'image').toList();
       final interieur = c.maxWidth - 24 - 32;
-      final tailleImage = Size(images.isEmpty ? 0 : interieur / images.length - 8, _hauteurImage);
+      final n = math.max(images.length, widget.nbImages);
+      final tailleImage = Size(n == 0 ? 0 : interieur / n - 8, _hauteurImage);
       final mesures = <String, _Mesure>{
         for (final e in widget.elements.values)
           if (e.genre == 'texte') e.id: _Mesure(e.texte ?? '', styleTableau(e.style, e.couleur)),
