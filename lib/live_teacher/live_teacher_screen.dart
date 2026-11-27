@@ -7,6 +7,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'moteur.dart';
+import 'quiz.dart';
 import 'tableau.dart';
 
 const sceneAsset = 'assets/live_teacher/poulet-chair-scene-01.json';
@@ -27,6 +28,7 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
   bool _chargement = false;
   bool _fini = false;
   int _t = 0;
+  bool _quizFini = false;
 
   @override
   void initState() {
@@ -77,6 +79,7 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
       _chargement = true;
       _erreur = null;
       _fini = false;
+      _quizFini = false;
       _t = 0;
     });
     try {
@@ -162,6 +165,7 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
   Future<void> _recommencer() async {
     setState(() {
       _fini = false;
+      _quizFini = false;
       _t = 0;
     });
     await _player.seek(Duration.zero, index: 0);
@@ -173,6 +177,7 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
     setState(() {
       _scene = null;
       _fini = false;
+      _quizFini = false;
     });
   }
 
@@ -260,8 +265,8 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
               Text(_voix == 'henri' ? 'Henri' : 'Vivienne', style: const TextStyle(color: Colors.black54)),
             ]),
           ),
-          Expanded(child: LiveBoard(elements: etat, t: _t, dessins: s.dessins, nbImages: s.evenements.where((e) => e.cmd['type'] == 'media.show').length)),
-          if (_fini)
+          Expanded(child: _fini && !_quizFini ? QuizVue(key: ValueKey('quiz-$_voix'), voix: _voix!, onFin: () => setState(() => _quizFini = true)) : LiveBoard(elements: etat, t: _t, dessins: s.dessins, nbImages: s.evenements.where((e) => e.cmd['type'] == 'media.show').length)),
+          if (_fini && _quizFini)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Column(children: [
