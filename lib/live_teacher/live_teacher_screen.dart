@@ -7,6 +7,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'moteur.dart';
+import 'question.dart';
 import 'quiz.dart';
 import 'tableau.dart';
 
@@ -162,6 +163,24 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
     await _player.seek(Duration.zero, index: cible);
   }
 
+  /// L'élève interrompt le cours : pause, sauvegarde, question, puis reprise 1 s avant l'arrêt.
+  Future<void> _poserQuestion() async {
+    final s = _scene;
+    final voix = _voix;
+    if (s == null || voix == null) return;
+    await _player.pause();
+    await _sauver();
+    if (!mounted) return;
+    final idx = (_player.currentIndex ?? 0).clamp(0, s.segments.length - 1);
+    final vus = [for (final seg in s.segments.take(idx + 1)) seg.id];
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => QuestionEleve(voix: voix, segmentsVus: vus)));
+    if (!mounted) return;
+    final pos = _player.position.inMilliseconds;
+    await _player.seek(Duration(milliseconds: math.max(0, pos - 1000)), index: idx);
+    _player.play();
+    setState(() {});
+  }
+
   Future<void> _recommencer() async {
     setState(() {
       _fini = false;
@@ -187,6 +206,13 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
     return Scaffold(
       backgroundColor: const Color(0xFFF3F6F4),
       body: SafeArea(child: s == null ? _accueil() : _cours(s)),
+      floatingActionButton: s != null && !_fini
+          ? FloatingActionButton.extended(
+              onPressed: _poserQuestion,
+              icon: const Icon(Icons.help_outline),
+              label: const Text('Poser une question'),
+            )
+          : null,
     );
   }
 

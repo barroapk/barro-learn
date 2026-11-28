@@ -1,0 +1,264 @@
+{
+ "format": 1,
+ "scene": "poulet-chair-scene-01-questions",
+ "pour_scene": "poulet-chair-scene-01",
+ "segments": [
+  {
+   "id": "qa-r1",
+   "texte": "Une souche, c'est une famille de poulets qu'on a sélectionnés, génération après génération, pour une qualité précise. Pour le poulet de chair, cette qualité, c'est de grandir vite. C'est comme une variété de mangue, choisie parce qu'elle donne de gros fruits.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "qa-r2",
+   "texte": "Imagine que tu veux des mangues bien sucrées. Tu ne plantes pas n'importe quel manguier : tu choisis une variété connue pour ça. Les éleveurs font pareil avec les poulets : la souche de chair, c'est la variété choisie pour grandir vite.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "qb-r1",
+   "texte": "Il y a deux raisons. D'abord la souche : ces poulets ont été sélectionnés pendant des années pour grandir vite. Ensuite l'élevage : une alimentation adaptée, de l'eau propre, et un bon logement. Sans ces soins, même une bonne souche grandit mal.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "qb-r2",
+   "texte": "Pense à une graine de qualité. Si tu la plantes dans une bonne terre, et que tu l'arroses bien, elle pousse vite. Le poulet de chair, c'est pareil : une bonne souche, bien nourrie, et bien logée.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "qc-r1",
+   "texte": "Après la vente, le bâtiment est vide. L'éleveur le nettoie, le désinfecte, puis le laisse reposer quelques jours. Ensuite, il accueille une nouvelle bande de poussins d'un jour.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "qc-r2",
+   "texte": "Pense à une salle de classe à la fin de l'année. On la nettoie, on la prépare, puis une nouvelle classe arrive. Pour l'élevage, c'est pareil : on nettoie bien avant d'accueillir la bande suivante, pour éviter les maladies.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "qd-r1",
+   "texte": "Parce que la durée change d'un élevage à l'autre. La chaleur, l'alimentation, ou le poids que veut le client peuvent avancer ou retarder la vente d'environ une semaine.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "qd-r2",
+   "texte": "Environ veut dire à peu près. Six semaines, c'est le repère moyen. Certains éleveurs vendent un peu avant, d'autres un peu après.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "qe-r1",
+   "texte": "Fais le calcul avec moi. Une bande dure environ six semaines. Ajoute environ deux semaines pour nettoyer et préparer le bâtiment. Cela fait à peu près huit semaines par bande. Dans une année, il y a cinquante-deux semaines : on peut donc faire environ six bandes.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "qe-r2",
+   "texte": "Pense au calendrier de l'année. Une bande, puis un nettoyage, puis une autre bande, et ainsi de suite. En tout, un éleveur bien organisé fait souvent entre cinq et sept bandes par an. Six, c'est un bon repère.",
+   "commandes": [],
+   "debit": "-8%"
+  },
+  {
+   "id": "b1",
+   "texte": "Bonne question !",
+   "commandes": []
+  },
+  {
+   "id": "b2",
+   "texte": "Ah, très bonne question. Regardons ça.",
+   "commandes": []
+  },
+  {
+   "id": "b3",
+   "texte": "Je t'explique tout de suite.",
+   "commandes": []
+  },
+  {
+   "id": "o1",
+   "texte": "Très bien. Reprenons le cours.",
+   "commandes": []
+  },
+  {
+   "id": "o2",
+   "texte": "Parfait, on continue là où on s'était arrêtés.",
+   "commandes": []
+  }
+ ],
+ "questions": [
+  {
+   "id": "qa",
+   "texte": "C'est quoi, une souche ?",
+   "titre": "Une souche ?",
+   "a_partir_de": "v3",
+   "reponses": [
+    {
+     "id": "qa-r1",
+     "retenir": "Souche = famille choisie pour une qualité",
+     "figure": {
+      "type": "comparaison",
+      "items": [
+       {
+        "label": "souche de chair",
+        "taille": 1.0
+       },
+       {
+        "label": "autre souche",
+        "taille": 0.5
+       }
+      ]
+     }
+    },
+    {
+     "id": "qa-r2",
+     "retenir": "On choisit la souche selon le but",
+     "figure": {
+      "type": "frise",
+      "etapes": [
+       "Le but",
+       "Le choix de la souche",
+       "Le résultat"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "qb",
+   "texte": "Pourquoi grandit-il aussi vite ?",
+   "titre": "Pourquoi si vite ?",
+   "a_partir_de": "v4",
+   "reponses": [
+    {
+     "id": "qb-r1",
+     "retenir": "Bonne souche + bons soins = croissance rapide",
+     "figure": {
+      "type": "frise",
+      "etapes": [
+       "Bonne souche",
+       "Bons soins",
+       "Croissance rapide"
+      ]
+     }
+    },
+    {
+     "id": "qb-r2",
+     "retenir": "La souche ne suffit pas : il faut bien nourrir",
+     "figure": {
+      "type": "comparaison",
+      "items": [
+       {
+        "label": "bien nourri",
+        "taille": 1.0
+       },
+       {
+        "label": "mal nourri",
+        "taille": 0.5
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "qc",
+   "texte": "Que fait-on après la vente ?",
+   "titre": "Après la vente ?",
+   "a_partir_de": "v5",
+   "reponses": [
+    {
+     "id": "qc-r1",
+     "retenir": "Vente → nettoyage → nouvelle bande",
+     "figure": {
+      "type": "frise",
+      "etapes": [
+       "Vente",
+       "Nettoyage",
+       "Nouvelle bande"
+      ]
+     }
+    },
+    {
+     "id": "qc-r2",
+     "retenir": "On nettoie avant chaque nouvelle bande",
+     "figure": {
+      "type": "groupe",
+      "n": 6,
+      "label": "une nouvelle bande, dans un bâtiment propre"
+     }
+    }
+   ]
+  },
+  {
+   "id": "qd",
+   "texte": "Pourquoi dit-on « environ » six semaines ?",
+   "titre": "Pourquoi « environ » ?",
+   "a_partir_de": "v6",
+   "reponses": [
+    {
+     "id": "qd-r1",
+     "retenir": "La durée dépend de l'élevage et du client",
+     "figure": {
+      "type": "intervalle",
+      "min": "5 sem.",
+      "centre": "6 sem.",
+      "max": "7 sem.",
+      "label": "environ 6 semaines"
+     }
+    },
+    {
+     "id": "qd-r2",
+     "retenir": "Environ = à peu près",
+     "figure": {
+      "type": "symbole",
+      "label": "≈ = à peu près"
+     }
+    }
+   ]
+  },
+  {
+   "id": "qe",
+   "texte": "Combien de bandes peut-on faire par an ?",
+   "titre": "Combien de bandes par an ?",
+   "a_partir_de": "v8",
+   "reponses": [
+    {
+     "id": "qe-r1",
+     "retenir": "≈ 6 bandes par an",
+     "figure": {
+      "type": "frise",
+      "etapes": [
+       "6 sem. d'élevage",
+       "+ 2 sem. de nettoyage",
+       "≈ 8 sem. par bande"
+      ]
+     }
+    },
+    {
+     "id": "qe-r2",
+     "retenir": "Entre 5 et 7 bandes par an",
+     "figure": {
+      "type": "intervalle",
+      "min": "5",
+      "centre": "6",
+      "max": "7",
+      "label": "environ 6 bandes par an"
+     }
+    }
+   ]
+  }
+ ],
+ "intro": [
+  "b1",
+  "b2",
+  "b3"
+ ],
+ "outro": [
+  "o1",
+  "o2"
+ ]
+}
