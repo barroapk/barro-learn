@@ -191,15 +191,6 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
     _player.play();
   }
 
-  void _changerVoix() {
-    _player.stop();
-    setState(() {
-      _scene = null;
-      _fini = false;
-      _quizFini = false;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final s = _scene;
@@ -233,18 +224,10 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Text(_erreur!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
               ),
-            const Text('Choisis ton professeur'),
-            const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: () => _demarrer('henri'),
-              icon: const Icon(Icons.record_voice_over),
-              label: const Text('Henri'),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.tonalIcon(
-              onPressed: () => _demarrer('vivienne'),
-              icon: const Icon(Icons.record_voice_over),
-              label: const Text('Vivienne'),
+              onPressed: () => _demarrer(voixProfesseur),
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('Commencer le cours'),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -288,7 +271,7 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(children: [
               Expanded(child: Text(s.titre, style: const TextStyle(fontWeight: FontWeight.w600))),
-              Text(_voix == 'henri' ? 'Henri' : 'Vivienne', style: const TextStyle(color: Colors.black54)),
+              Text(nomProfesseur, style: const TextStyle(color: Colors.black54)),
             ]),
           ),
           Expanded(child: _fini && !_quizFini ? QuizVue(key: ValueKey('quiz-$_voix'), voix: _voix!, onFin: () => setState(() => _quizFini = true)) : LiveBoard(elements: etat, t: _t, dessins: s.dessins, nbImages: s.evenements.where((e) => e.cmd['type'] == 'media.show').length)),
@@ -298,7 +281,6 @@ class _LiveTeacherScreenState extends State<LiveTeacherScreen> with SingleTicker
               child: Column(children: [
                 Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 8, children: [
                   FilledButton(onPressed: _recommencer, child: const Text('Recommencer')),
-                  OutlinedButton(onPressed: _changerVoix, child: const Text('Changer de voix')),
                 ]),
               ]),
             ),

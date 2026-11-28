@@ -6,6 +6,9 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Moteur Live Teacher : relie la scène, les voix (barro-voix) et les images (barro-images).
+/// Voix unique de tout le projet BARRO (ElevenLabs).
+const voixProfesseur = 'nicolas';
+const nomProfesseur = 'Nicolas';
 const cdnVoix = 'https://cdn.jsdelivr.net/gh/barroapk/barro-voix@main';
 const cdnImages = 'https://cdn.jsdelivr.net/gh/barroapk/barro-images@main';
 

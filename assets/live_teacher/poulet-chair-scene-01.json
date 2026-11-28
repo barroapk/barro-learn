@@ -4,8 +4,7 @@
  "titre": "Qu'est-ce qu'un poulet de chair ?",
  "version": 1,
  "voix_possibles": [
-  "henri",
-  "vivienne"
+  "nicolas"
  ],
  "zones": [
   "titre",
